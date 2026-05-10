@@ -981,6 +981,8 @@ let lastUpdated  = null;
 const renderedPosts = new Map(); // uri → { node, likeCount, repostCount, replyCount }
 let nextCursor    = null;
 let hasLazyLoaded = false;
+let loadingMore = false;
+let exhausted   = false;
 
 // ── Helpers ───────────────────────────────────────────────────────
 const esc = s => String(s)
@@ -1734,6 +1736,52 @@ async function pollFeed() {
     feedErrEl.style.display = 'block';
   }
 }
+
+async function loadMore() {
+  if (loadingMore || exhausted || !nextCursor) return;
+  loadingMore = true;
+  hasLazyLoaded = true; // freeze nextCursor management against polling
+  try {
+    const r = await fetch(`/api/feed?cursor=${encodeURIComponent(nextCursor)}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const { posts, cursor } = await r.json();
+
+    if (!posts.length) {
+      exhausted = true;
+      return;
+    }
+
+    // Append posts that aren't already rendered (cursor pages should be disjoint from page 1)
+    for (const post of posts) {
+      if (renderedPosts.has(post.uri)) continue;
+      const node = renderPost(post);
+      feedEl.appendChild(node);
+      renderedPosts.set(post.uri, {
+        node,
+        likeCount: post.likeCount,
+        repostCount: post.repostCount,
+        replyCount: post.replyCount,
+        firstPage: false, // protect from deletion by the diff renderer
+      });
+    }
+
+    if (cursor) {
+      nextCursor = cursor;
+    } else {
+      exhausted = true;
+    }
+  } catch (err) {
+    console.error('Load more failed:', err);
+  } finally {
+    loadingMore = false;
+  }
+}
+
+const feedPanel = document.querySelector('.feed-panel');
+feedPanel.addEventListener('scroll', () => {
+  const distanceFromBottom = feedPanel.scrollHeight - feedPanel.scrollTop - feedPanel.clientHeight;
+  if (distanceFromBottom < 400) loadMore();
+});
 
 // ── Auth ──────────────────────────────────────────────────────────
 async function loadViewerLikes() {
