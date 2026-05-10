@@ -261,10 +261,12 @@ app.post('/api/unlike', async (req, res) => {
 // ── Klipy GIF proxy ───────────────────────────────────────────────────────────
 const KLIPY_BASE = `https://api.klipy.com/api/v1/${KLIPY_API_KEY}/gifs`;
 
+const KLIPY_CUSTOMER_ID = 'BlindDrams';
+
 app.get('/api/klipy/trending', async (_req, res) => {
   if (!KLIPY_API_KEY) return res.status(503).json({ error: 'GIF picker not configured' });
   try {
-    const r = await fetch(`${KLIPY_BASE}/trending?per_page=24`);
+    const r = await fetch(`${KLIPY_BASE}/trending?per_page=24&customer_id=${KLIPY_CUSTOMER_ID}`);
     const json = await r.json();
     res.json(json);
   } catch (err) {
@@ -277,7 +279,7 @@ app.get('/api/klipy/search', async (req, res) => {
   const { q, page = 1 } = req.query;
   if (!q) return res.status(400).json({ error: 'q required' });
   try {
-    const r = await fetch(`${KLIPY_BASE}/search?q=${encodeURIComponent(q)}&per_page=24&page=${page}`);
+    const r = await fetch(`${KLIPY_BASE}/search?q=${encodeURIComponent(q)}&per_page=24&page=${page}&customer_id=${KLIPY_CUSTOMER_ID}`);
     const json = await r.json();
     res.json(json);
   } catch (err) {

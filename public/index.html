@@ -1776,7 +1776,8 @@ function klipyGifUrl(item) {
 }
 
 function klipyFullUrl(item) {
-  return item.file?.md?.gif?.url || item.file?.hd?.gif?.url || klipyGifUrl(item);
+  // Use sm to stay well under Bluesky's 1MB blob limit
+  return item.file?.sm?.gif?.url || item.file?.xs?.gif?.url || '';
 }
 
 function klipyStatus(msg) {
