@@ -494,11 +494,6 @@
   .stage-body { display:flex; flex-direction:column; gap:8px; padding:8px; }
   .stage-block.collapsed .stage-body { display:none; }
 
-  /* Post-all */
-  .post-all-wrap { padding:0 11px 11px; flex-shrink:0; }
-  .post-all-btn { width:100%; padding:8px; background:var(--accent); color:#120d05; border:none; border-radius:7px; font-size:.82rem; font-weight:700; cursor:pointer; transition:opacity .15s; }
-  .post-all-btn:hover:not(:disabled) { opacity:.85; }
-  .post-all-btn:disabled { opacity:.45; cursor:not-allowed; }
   #tasting-feedback { display:none; font-size:.72rem; border-radius:6px; padding:6px 10px; margin:0 11px 8px; }
   #tasting-feedback.ok  { display:block; background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.3); color:#86efac; }
   #tasting-feedback.err { display:block; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:#fca5a5; }
@@ -853,9 +848,6 @@
           </div>
         </div>
         <div id="tasting-feedback"></div>
-        <div class="post-all-wrap">
-          <button class="post-all-btn" id="t-post-all">Post Everything for Dram <span id="t-dram-num">1</span></button>
-        </div>
       </div>
 
       <!-- ── Free post panel ── -->
@@ -1476,8 +1468,6 @@ for (let i = 1; i <= 5; i++) {
 const dramTabs     = document.querySelectorAll('.dram-tab');
 const tStarsRow    = document.getElementById('t-stars');
 const tScoreDesc   = document.getElementById('t-score-desc');
-const tPostAll     = document.getElementById('t-post-all');
-const tDramNum     = document.getElementById('t-dram-num');
 const tastingFb    = document.getElementById('tasting-feedback');
 const tabTasting   = document.getElementById('tab-tasting');
 const tabPost      = document.getElementById('tab-post');
@@ -1511,7 +1501,6 @@ function loadDram(n) {
   renderAllStageImages();
   updateAllStageStatuses();
   refreshStageButtons();
-  tDramNum.textContent = n;
   dramTabs.forEach(t => t.classList.toggle('active', parseInt(t.dataset.dram) === n));
 }
 dramTabs.forEach(t => t.addEventListener('click', () => loadDram(parseInt(t.dataset.dram))));
@@ -1697,20 +1686,6 @@ stagePostBtns.forEach(btn => {
 });
 
 // Post everything
-tPostAll.addEventListener('click', async () => {
-  saveDram();
-  if (!STAGES.some(stage => hasStageDraft(activeDram, stage.key))) {
-    showTastingFb('Nothing filled in yet.', 'err'); return;
-  }
-  tPostAll.disabled = true; tPostAll.textContent = 'Posting…';
-  try {
-    await postTasting({ dram: activeDram });
-    showTastingFb(`✓ Dram ${activeDram} posted!`, 'ok');
-    markDone(activeDram);
-  } catch(e) { showTastingFb(e.message, 'err'); }
-  finally { tPostAll.disabled = false; tPostAll.textContent = `Post Everything for Dram ${activeDram}`; }
-});
-
 loadDram(1);
 
 async function pollFeed() {
