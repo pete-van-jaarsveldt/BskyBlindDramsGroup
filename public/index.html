@@ -666,10 +666,11 @@
     <aside class="event-card" aria-label="Current tasting">
       <img src="btc65-theme.jpeg" alt="Grape Expectations BTC65 theme artwork">
       <div class="event-meta">
-        <div class="event-kicker">BTC65</div>
+        <div class="event-kicker">#BTC65</div>
         <div class="event-title">Grape Expectations</div>
         <div class="event-date">13 Jun 2026 · 8:00pm UK</div>
         <div class="event-countdown" id="event-countdown">Calculating…</div>
+        <button id="event-post-btn" style="display:none" class="event-countdown" title="Post this event to Bluesky">Post this ↗</button>
       </div>
     </aside>
 
@@ -1755,6 +1756,51 @@ if (sessionId && userInfo) { showLoggedIn(userInfo); loadViewerLikes(); }
 pollFeed();
 setInterval(pollFeed, 5_000);
 
+// ── Event card "Post this" button ────────────────────────────────
+const eventPostBtn = document.getElementById('event-post-btn');
+
+function setEventPostVisible(on) {
+  eventPostBtn.style.display = on ? 'inline-flex' : 'none';
+}
+
+eventPostBtn.addEventListener('click', async () => {
+  if (!sessionId) return;
+  eventPostBtn.disabled = true;
+  eventPostBtn.textContent = 'Posting…';
+  try {
+    // Fetch the event image and upload it as a blob
+    const imgRes = await fetch('/btc65-theme.jpeg');
+    const buffer = await imgRes.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const uploadRes = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, imageData: base64, mimeType: 'image/jpeg' }),
+    });
+    const uploadData = await uploadRes.json();
+    if (!uploadRes.ok) throw new Error(uploadData.error || 'Upload failed');
+
+    const countdown = eventCountdown.textContent;
+    const text = `Grape Expectations — ${countdown} #BTC65 #BlindDrams`;
+    const postRes = await fetch('/api/post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, text, blobs: [uploadData.blob] }),
+    });
+    const postData = await postRes.json();
+    if (!postRes.ok) {
+      if (postRes.status === 401) { showLoggedOut(); return; }
+      throw new Error(postData.error || 'Post failed');
+    }
+    eventPostBtn.textContent = '✓ Posted!';
+    setTimeout(() => { eventPostBtn.disabled = false; eventPostBtn.textContent = 'Post this ↗'; }, 3000);
+    pollFeed();
+  } catch (err) {
+    eventPostBtn.textContent = err.message;
+    setTimeout(() => { eventPostBtn.disabled = false; eventPostBtn.textContent = 'Post this ↗'; }, 3000);
+  }
+});
+
 // ── Klipy GIF picker ──────────────────────────────────────────────
 const klipyModal   = document.getElementById('klipy-modal');
 const klipyGrid    = document.getElementById('klipy-grid');
@@ -1908,6 +1954,7 @@ const _origShowLoggedOut = showLoggedOut;
 function enableGifBtns(on) {
   gifBtn.disabled = !on;
   stageGifBtns.forEach(b => { b.disabled = !on; });
+  setEventPostVisible(on);
 }
 showLoggedIn = data => { _origShowLoggedIn(data); enableGifBtns(true); };
 showLoggedOut = ()  => { _origShowLoggedOut();    enableGifBtns(false); closeKlipyModal(); };
