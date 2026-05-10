@@ -1771,7 +1771,10 @@ eventPostBtn.addEventListener('click', async () => {
     // Fetch the event image and upload it as a blob
     const imgRes = await fetch('/btc65-theme.jpeg');
     const buffer = await imgRes.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
     const uploadRes = await fetch('/api/upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
