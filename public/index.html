@@ -1771,17 +1771,12 @@ let klipyHasNext = false;
 let klipyDebounce = null;
 
 function klipyGifUrl(item) {
-  const f = item.files || {};
-  // Try common format keys (Klipy mirrors Tenor's structure)
-  return (
-    f.tinygif?.url || f.nanogif?.url || f.small?.url ||
-    f.preview?.url || f.gif?.url    || f.original?.url || ''
-  );
+  // Klipy: item.file.{xs|sm|md|hd}.gif.url
+  return item.file?.sm?.gif?.url || item.file?.xs?.gif?.url || item.file?.md?.gif?.url || '';
 }
 
 function klipyFullUrl(item) {
-  const f = item.files || {};
-  return f.gif?.url || f.original?.url || klipyGifUrl(item);
+  return item.file?.md?.gif?.url || item.file?.hd?.gif?.url || klipyGifUrl(item);
 }
 
 function klipyStatus(msg) {
