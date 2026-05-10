@@ -990,6 +990,9 @@ let localLikes  = new Map();   // postUri → likeUri
 let pendingBlobs = [];          // [{ blob, previewUrl, alt }]
 const stageImages = {};         // dram number → stage → [{ blob, previewUrl, alt }]
 let lastUpdated  = null;
+const renderedPosts = new Map(); // uri → { node, likeCount, repostCount, replyCount }
+let nextCursor    = null;
+let hasLazyLoaded = false;
 
 // ── Helpers ───────────────────────────────────────────────────────
 const esc = s => String(s)
@@ -1405,6 +1408,31 @@ function renderPost(post) {
   return el;
 }
 
+function updatePostCounts(entry, post) {
+  if (entry.likeCount !== post.likeCount) {
+    const lc = entry.node.querySelector('.like-btn .lc');
+    if (lc) lc.textContent = post.likeCount;
+    entry.likeCount = post.likeCount;
+  }
+  if (entry.replyCount !== post.replyCount) {
+    // Reply count is inside the second .action-btn span
+    const buttons = entry.node.querySelectorAll('.post-footer .action-btn');
+    if (buttons[1]) {
+      const span = buttons[1].querySelector('span');
+      if (span) span.textContent = post.replyCount;
+    }
+    entry.replyCount = post.replyCount;
+  }
+  if (entry.repostCount !== post.repostCount) {
+    const buttons = entry.node.querySelectorAll('.post-footer .action-btn');
+    if (buttons[2]) {
+      const span = buttons[2].querySelector('span');
+      if (span) span.textContent = post.repostCount;
+    }
+    entry.repostCount = post.repostCount;
+  }
+}
+
 // ── Tasting panel ─────────────────────────────────────────────────
 const SCORE_SHORT = [
   "Charity raffle material 😬",
@@ -1647,27 +1675,75 @@ async function pollFeed() {
   try {
     const r = await fetch('/api/feed');
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const { posts, total } = await r.json();
+    const { posts, cursor } = await r.json();
     feedErrEl.style.display = 'none';
+    // Only seed nextCursor from polling until the user starts lazy-loading;
+    // afterwards loadMore manages it
+    if (!hasLazyLoaded) nextCursor = cursor;
 
-    if (total === 0) {
-      feedEl.innerHTML = '';
-      feedEl.appendChild(emptyEl);
+    // Empty state
+    if (!posts.length) {
+      if (renderedPosts.size > 0) {
+        // Was non-empty, now empty — wipe and show placeholder
+        feedEl.innerHTML = '';
+        feedEl.appendChild(emptyEl);
+        renderedPosts.clear();
+      } else if (!feedEl.contains(emptyEl)) {
+        feedEl.appendChild(emptyEl);
+      }
       emptyEl.style.display = 'block';
-      badgeEl.textContent = '0 posts';
-      feedStatus.textContent = 'watching…';
       return;
     }
 
-    feedEl.innerHTML = '';
-    for (const post of posts) feedEl.appendChild(renderPost(post));
-    badgeEl.textContent = `${total} post${total!==1?'s':''}`;
+    // Remove the empty placeholder if it's still in the DOM
+    if (feedEl.contains(emptyEl)) feedEl.removeChild(emptyEl);
+
+    // Build the set of incoming URIs to detect deletions
+    const incomingUris = new Set(posts.map(p => p.uri));
+
+    // Remove posts no longer present (only consider posts inside the first-page set;
+    // older lazy-loaded posts have URIs not in `posts` and must be preserved)
+    for (const [uri, entry] of renderedPosts) {
+      if (entry.firstPage && !incomingUris.has(uri)) {
+        entry.node.remove();
+        renderedPosts.delete(uri);
+      }
+    }
+
+    // Walk incoming posts in order, inserting/patching as we go
+    let prevNode = null; // tracks where to insert the next new node
+    for (const post of posts) {
+      let entry = renderedPosts.get(post.uri);
+      if (entry) {
+        // Existing — patch counts only
+        updatePostCounts(entry, post);
+        entry.firstPage = true;
+        prevNode = entry.node;
+      } else {
+        // New post — build and insert in correct order
+        const node = renderPost(post);
+        if (prevNode && prevNode.nextSibling) {
+          feedEl.insertBefore(node, prevNode.nextSibling);
+        } else if (prevNode) {
+          feedEl.appendChild(node);
+        } else {
+          feedEl.insertBefore(node, feedEl.firstChild);
+        }
+        renderedPosts.set(post.uri, {
+          node,
+          likeCount: post.likeCount,
+          repostCount: post.repostCount,
+          replyCount: post.replyCount,
+          firstPage: true,
+        });
+        prevNode = node;
+      }
+    }
+
     lastUpdated = new Date();
-    feedStatus.textContent = `updated ${relativeTime(lastUpdated)}`;
   } catch (err) {
     feedErrEl.textContent = `Feed error: ${err.message}`;
     feedErrEl.style.display = 'block';
-    feedStatus.textContent = 'retrying…';
   }
 }
 
