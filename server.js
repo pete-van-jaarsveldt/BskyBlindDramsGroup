@@ -19,6 +19,7 @@ const HASHTAG = '#BlindDrams';
 // ── Feed agent (read-only, uses app credentials) ─────────────────────────────
 const feedAgent = new BskyAgent({ service: 'https://bsky.social' });
 let feedPosts = [];
+let feedCursor = null;
 
 async function loginFeed() {
   await feedAgent.login({ identifier: BSKY_HANDLE, password: BSKY_APP_PASSWORD });
@@ -67,18 +68,19 @@ function extractImages(embed) {
   }
 }
 
-async function fetchFeed() {
+async function fetchPage(cursor) {
   const res = await feedAgent.app.bsky.feed.searchPosts({
     q: '#blinddrams',
     sort: 'latest',
     limit: 100,
+    ...(cursor ? { cursor } : {}),
   });
 
-  const fresh = [];
+  const posts = [];
   for (const post of res.data.posts) {
     if (BLOCKED_HANDLES.has(post.author.handle)) continue;
     const author = post.author;
-    fresh.push({
+    posts.push({
       uri:    post.uri,
       cid:    post.cid,
       author: {
@@ -96,7 +98,13 @@ async function fetchFeed() {
     });
   }
 
-  feedPosts = fresh;
+  return { posts, cursor: res.data.cursor || null };
+}
+
+async function fetchFeed() {
+  const page = await fetchPage();
+  feedPosts = page.posts;
+  feedCursor = page.cursor;
 }
 
 // ── User sessions: sessionId → { agent, handle, displayName, avatar, likes }──
@@ -108,8 +116,19 @@ app.use(express.json({ limit: '10mb' }));   // allow base64-encoded images
 app.use(express.static('public'));
 
 // Feed
-app.get('/api/feed', (_req, res) => {
-  res.json({ posts: feedPosts, total: feedPosts.length });
+app.get('/api/feed', async (req, res) => {
+  const { cursor } = req.query;
+  if (cursor) {
+    // Lazy-load older page — fetch on demand, do not affect the cached first page
+    try {
+      const page = await fetchPage(cursor);
+      return res.json({ posts: page.posts, cursor: page.cursor });
+    } catch (err) {
+      return res.status(502).json({ error: err.message });
+    }
+  }
+  // No cursor → return the cached first page plus the cursor that points to older posts
+  res.json({ posts: feedPosts, cursor: feedCursor });
 });
 
 // Login
