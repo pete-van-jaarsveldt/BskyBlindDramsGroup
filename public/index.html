@@ -645,7 +645,6 @@
   </div>
   <div id="pulse"></div>
   <span id="count-badge">0 posts</span>
-  <span id="feed-status">connecting…</span>
 </header>
 
 <div class="layout">
@@ -947,7 +946,6 @@
 <script>
 // ── DOM refs ──────────────────────────────────────────────────────
 const feedEl       = document.getElementById('feed');
-const feedStatus   = document.getElementById('feed-status');
 const badgeEl      = document.getElementById('count-badge');
 const emptyEl      = document.getElementById('empty');
 const feedErrEl    = document.getElementById('feed-err');
@@ -1830,7 +1828,7 @@ signoutBtn.addEventListener('click', () => {
 if (sessionId && userInfo) { showLoggedIn(userInfo); loadViewerLikes(); }
 
 pollFeed();
-setInterval(pollFeed, 5_000);
+setInterval(pollFeed, 2_000);
 
 // ── Event card "Post this" button ────────────────────────────────
 const eventPostBtn = document.getElementById('event-post-btn');
