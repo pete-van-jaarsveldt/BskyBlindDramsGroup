@@ -510,6 +510,78 @@
   #tasting-feedback.ok  { display:block; background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.3); color:#86efac; }
   #tasting-feedback.err { display:block; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:#fca5a5; }
 
+  /* ── Klipy GIF picker modal ─────────────────────────────── */
+  #klipy-modal {
+    display:none; position:fixed; inset:0; z-index:200;
+    background:rgba(0,0,0,.65); align-items:center; justify-content:center;
+  }
+  #klipy-modal.on { display:flex; }
+  #klipy-inner {
+    background:#141311; border:1px solid var(--border);
+    border-radius:12px; width:min(420px,96vw);
+    max-height:80vh; display:flex; flex-direction:column;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+    overflow:hidden;
+  }
+  #klipy-header {
+    display:flex; align-items:center; gap:8px;
+    padding:10px 12px; border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  #klipy-search {
+    flex:1; background:var(--surf2); border:1px solid var(--border);
+    border-radius:7px; color:var(--text); font-size:.85rem;
+    padding:7px 10px; outline:none;
+  }
+  #klipy-search:focus { border-color:var(--accent); }
+  #klipy-close {
+    width:28px; height:28px; background:none; border:none;
+    color:var(--muted); cursor:pointer; font-size:1rem;
+    border-radius:6px; display:flex; align-items:center; justify-content:center;
+  }
+  #klipy-close:hover { background:var(--surf2); color:var(--text); }
+  #klipy-grid {
+    flex:1; overflow-y:auto;
+    display:grid; grid-template-columns:repeat(3,1fr); gap:3px;
+    padding:3px;
+  }
+  .klipy-thumb {
+    aspect-ratio:1; overflow:hidden; cursor:pointer;
+    background:var(--border); border-radius:4px;
+    position:relative;
+  }
+  .klipy-thumb img {
+    width:100%; height:100%; object-fit:cover;
+    transition:opacity .15s;
+  }
+  .klipy-thumb:hover img { opacity:.8; }
+  .klipy-thumb.loading::after {
+    content:''; position:absolute; inset:0;
+    background:rgba(228,154,19,.15);
+  }
+  #klipy-load-more {
+    margin:8px; padding:6px; background:none;
+    border:1px solid var(--border); border-radius:7px;
+    color:var(--muted); font-size:.78rem; cursor:pointer;
+    flex-shrink:0;
+  }
+  #klipy-load-more:hover { border-color:var(--accent); color:var(--accent); }
+  #klipy-load-more:disabled { opacity:.4; cursor:not-allowed; }
+  #klipy-status {
+    text-align:center; color:var(--muted); font-size:.75rem;
+    padding:20px 0; grid-column:1/-1;
+  }
+  #klipy-attribution {
+    display:flex; align-items:center; justify-content:center;
+    gap:6px; padding:7px 12px;
+    border-top:1px solid var(--border); flex-shrink:0;
+    font-size:.68rem; color:var(--muted);
+  }
+  .klipy-logo {
+    font-weight:900; letter-spacing:.04em;
+    color:var(--accent); font-size:.75rem;
+  }
+
   /* Feed empty / error */
   #empty { text-align:center; color:var(--muted); padding:60px 0; }
   #empty .big { font-size:2.5rem; margin-bottom:8px; }
@@ -654,6 +726,10 @@
                     Add image
                   </button>
                   <input data-stage-img-input="appearance" type="file" accept="image/*" multiple style="display:none">
+                  <button class="stage-img-btn" type="button" data-stage-gif-btn="appearance" title="Add GIF to appearance" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M10 12h-2v-2m0 4v-4"/><path d="M14 10h2.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H14v1.5"/><path d="M7 12h1.5"/></svg>
+                    Add GIF
+                  </button>
                 </div>
                 <div class="stage-previews" data-stage-previews="appearance"></div>
               </div>
@@ -679,6 +755,10 @@
                     Add image
                   </button>
                   <input data-stage-img-input="nose" type="file" accept="image/*" multiple style="display:none">
+                  <button class="stage-img-btn" type="button" data-stage-gif-btn="nose" title="Add GIF to nose" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M10 12h-2v-2m0 4v-4"/><path d="M14 10h2.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H14v1.5"/><path d="M7 12h1.5"/></svg>
+                    Add GIF
+                  </button>
                 </div>
                 <div class="stage-previews" data-stage-previews="nose"></div>
               </div>
@@ -704,6 +784,10 @@
                     Add image
                   </button>
                   <input data-stage-img-input="palate" type="file" accept="image/*" multiple style="display:none">
+                  <button class="stage-img-btn" type="button" data-stage-gif-btn="palate" title="Add GIF to palate" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M10 12h-2v-2m0 4v-4"/><path d="M14 10h2.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H14v1.5"/><path d="M7 12h1.5"/></svg>
+                    Add GIF
+                  </button>
                 </div>
                 <div class="stage-previews" data-stage-previews="palate"></div>
               </div>
@@ -729,6 +813,10 @@
                     Add image
                   </button>
                   <input data-stage-img-input="finish" type="file" accept="image/*" multiple style="display:none">
+                  <button class="stage-img-btn" type="button" data-stage-gif-btn="finish" title="Add GIF to finish" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M10 12h-2v-2m0 4v-4"/><path d="M14 10h2.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H14v1.5"/><path d="M7 12h1.5"/></svg>
+                    Add GIF
+                  </button>
                 </div>
                 <div class="stage-previews" data-stage-previews="finish"></div>
               </div>
@@ -763,6 +851,10 @@
                     Add image
                   </button>
                   <input data-stage-img-input="score" type="file" accept="image/*" multiple style="display:none">
+                  <button class="stage-img-btn" type="button" data-stage-gif-btn="score" title="Add GIF to score" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M10 12h-2v-2m0 4v-4"/><path d="M14 10h2.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H14v1.5"/><path d="M7 12h1.5"/></svg>
+                    Add GIF
+                  </button>
                 </div>
                 <div class="stage-previews" data-stage-previews="score"></div>
               </div>
@@ -788,6 +880,12 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
               <polyline points="21 15 16 10 5 21"/>
+            </svg>
+          </button>
+          <button class="tool-btn" id="gif-btn" title="Add GIF" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2"/>
+              <path d="M10 12h-2v-2m0 4v-4"/><path d="M14 10h2.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H14v1.5"/><path d="M7 12h1.5"/>
             </svg>
           </button>
           <button class="tool-btn" id="emoji-btn" title="Add emoji">
@@ -823,6 +921,21 @@
     </div>
   </div>
 
+</div>
+
+<!-- Klipy GIF picker modal -->
+<div id="klipy-modal" role="dialog" aria-label="GIF picker">
+  <div id="klipy-inner">
+    <div id="klipy-header">
+      <input id="klipy-search" type="text" placeholder="Search KLIPY" autocomplete="off">
+      <button id="klipy-close" title="Close">✕</button>
+    </div>
+    <div id="klipy-grid"></div>
+    <button id="klipy-load-more" style="display:none">Load more</button>
+    <div id="klipy-attribution">
+      Powered by <span class="klipy-logo">KLIPY</span>
+    </div>
+  </div>
 </div>
 
 <!-- Emoji picker popup (positioned by JS) -->
@@ -1641,6 +1754,167 @@ if (sessionId && userInfo) { showLoggedIn(userInfo); loadViewerLikes(); }
 
 pollFeed();
 setInterval(pollFeed, 5_000);
+
+// ── Klipy GIF picker ──────────────────────────────────────────────
+const klipyModal   = document.getElementById('klipy-modal');
+const klipyGrid    = document.getElementById('klipy-grid');
+const klipySearch  = document.getElementById('klipy-search');
+const klipyClose   = document.getElementById('klipy-close');
+const klipyMore    = document.getElementById('klipy-load-more');
+const gifBtn       = document.getElementById('gif-btn');
+const stageGifBtns = document.querySelectorAll('[data-stage-gif-btn]');
+
+let klipyTarget  = null;  // 'free' | stage key
+let klipyPage    = 1;
+let klipyQuery   = '';
+let klipyHasNext = false;
+let klipyDebounce = null;
+
+function klipyGifUrl(item) {
+  const f = item.files || {};
+  // Try common format keys (Klipy mirrors Tenor's structure)
+  return (
+    f.tinygif?.url || f.nanogif?.url || f.small?.url ||
+    f.preview?.url || f.gif?.url    || f.original?.url || ''
+  );
+}
+
+function klipyFullUrl(item) {
+  const f = item.files || {};
+  return f.gif?.url || f.original?.url || klipyGifUrl(item);
+}
+
+function klipyStatus(msg) {
+  klipyGrid.innerHTML = `<div id="klipy-status">${msg}</div>`;
+  klipyMore.style.display = 'none';
+}
+
+function renderKlipyItems(items, append = false) {
+  if (!append) klipyGrid.innerHTML = '';
+  if (!items?.length && !append) { klipyStatus('No results'); return; }
+
+  items.forEach(item => {
+    const thumb = klipyGifUrl(item);
+    const full  = klipyFullUrl(item);
+    if (!thumb) return;
+    const div = document.createElement('div');
+    div.className = 'klipy-thumb';
+    const img = document.createElement('img');
+    img.src = thumb;
+    img.alt = item.title || 'GIF';
+    img.loading = 'lazy';
+    div.appendChild(img);
+    div.addEventListener('click', () => onKlipySelect(full || thumb, item.title || ''));
+    klipyGrid.appendChild(div);
+  });
+
+  klipyMore.style.display = klipyHasNext ? 'block' : 'none';
+}
+
+async function klipyFetch(query, page, append = false) {
+  if (!append) klipyStatus('Loading…');
+  const url = query
+    ? `/api/klipy/search?q=${encodeURIComponent(query)}&page=${page}`
+    : `/api/klipy/trending`;
+  try {
+    const r = await fetch(url);
+    const json = await r.json();
+    if (!json.result) { klipyStatus('Could not load GIFs'); return; }
+    const items = json.data?.data || [];
+    klipyHasNext = json.data?.has_next ?? false;
+    renderKlipyItems(items, append);
+  } catch {
+    klipyStatus('Could not load GIFs');
+  }
+}
+
+async function onKlipySelect(gifUrl, alt) {
+  if (!sessionId) return;
+
+  // Mark all thumbs as inert while uploading
+  klipyGrid.querySelectorAll('.klipy-thumb').forEach(t => t.classList.add('loading'));
+  klipyMore.disabled = true;
+
+  try {
+    const r = await fetch('/api/klipy/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, gifUrl }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Upload failed');
+
+    const item = { blob: data.blob, previewUrl: gifUrl, alt };
+
+    if (klipyTarget === 'free') {
+      pendingBlobs.push(item);
+      imgBtn.disabled = pendingBlobs.length >= 4;
+      renderImgPreviews();
+    } else {
+      const list = stageImages[activeDram][klipyTarget];
+      list.push(item);
+      renderStageImages(klipyTarget);
+      updateStageStatus(klipyTarget);
+      const stageBtn = document.querySelector(`[data-stage-img-btn="${klipyTarget}"]`);
+      if (stageBtn) stageBtn.disabled = list.length >= 4;
+    }
+    closeKlipyModal();
+  } catch (err) {
+    klipyGrid.querySelectorAll('.klipy-thumb').forEach(t => t.classList.remove('loading'));
+    klipyMore.disabled = false;
+    klipyStatus(`Error: ${err.message}`);
+  }
+}
+
+function openKlipyModal(target) {
+  klipyTarget = target;
+  klipyPage   = 1;
+  klipyQuery  = '';
+  klipySearch.value = '';
+  klipyModal.classList.add('on');
+  klipySearch.focus();
+  klipyFetch('', 1);
+}
+
+function closeKlipyModal() {
+  klipyModal.classList.remove('on');
+  klipyTarget = null;
+}
+
+klipyClose.addEventListener('click', closeKlipyModal);
+klipyModal.addEventListener('click', e => { if (e.target === klipyModal) closeKlipyModal(); });
+
+klipySearch.addEventListener('input', () => {
+  clearTimeout(klipyDebounce);
+  klipyDebounce = setTimeout(() => {
+    klipyQuery = klipySearch.value.trim();
+    klipyPage  = 1;
+    klipyFetch(klipyQuery, 1);
+  }, 350);
+});
+
+klipyMore.addEventListener('click', () => {
+  klipyPage++;
+  klipyFetch(klipyQuery, klipyPage, true);
+});
+
+gifBtn.addEventListener('click', () => openKlipyModal('free'));
+stageGifBtns.forEach(btn => {
+  btn.addEventListener('click', () => openKlipyModal(btn.dataset.stageGifBtn));
+});
+
+// Enable GIF buttons once logged in (patch into showLoggedIn / showLoggedOut)
+const _origShowLoggedIn  = showLoggedIn;
+const _origShowLoggedOut = showLoggedOut;
+function enableGifBtns(on) {
+  gifBtn.disabled = !on;
+  stageGifBtns.forEach(b => { b.disabled = !on; });
+}
+showLoggedIn = data => { _origShowLoggedIn(data); enableGifBtns(true); };
+showLoggedOut = ()  => { _origShowLoggedOut();    enableGifBtns(false); closeKlipyModal(); };
+
+// If already logged in on page load, enable now
+if (sessionId) enableGifBtns(true);
 </script>
 </body>
 </html>

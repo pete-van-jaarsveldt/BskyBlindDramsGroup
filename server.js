@@ -3,11 +3,14 @@ import { BskyAgent, RichText } from '@atproto/api';
 import express from 'express';
 import { randomUUID } from 'crypto';
 
-const { BSKY_HANDLE, BSKY_APP_PASSWORD, PORT = 3000 } = process.env;
+const { BSKY_HANDLE, BSKY_APP_PASSWORD, PORT = 3000, KLIPY_API_KEY } = process.env;
 
 if (!BSKY_HANDLE || !BSKY_APP_PASSWORD) {
   console.error('Missing BSKY_HANDLE or BSKY_APP_PASSWORD in .env');
   process.exit(1);
+}
+if (!KLIPY_API_KEY) {
+  console.warn('KLIPY_API_KEY not set — GIF picker will be unavailable');
 }
 
 const BLOCKED_HANDLES = new Set(['toptags.bsky.social', 'trendtags.bsky.social']);
@@ -252,6 +255,54 @@ app.post('/api/unlike', async (req, res) => {
   } catch (err) {
     console.error('Unlike failed:', err.message);
     res.status(500).json({ error: 'Failed to unlike' });
+  }
+});
+
+// ── Klipy GIF proxy ───────────────────────────────────────────────────────────
+const KLIPY_BASE = `https://api.klipy.com/api/v1/${KLIPY_API_KEY}/gifs`;
+
+app.get('/api/klipy/trending', async (_req, res) => {
+  if (!KLIPY_API_KEY) return res.status(503).json({ error: 'GIF picker not configured' });
+  try {
+    const r = await fetch(`${KLIPY_BASE}/trending?per_page=24`);
+    const json = await r.json();
+    res.json(json);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+app.get('/api/klipy/search', async (req, res) => {
+  if (!KLIPY_API_KEY) return res.status(503).json({ error: 'GIF picker not configured' });
+  const { q, page = 1 } = req.query;
+  if (!q) return res.status(400).json({ error: 'q required' });
+  try {
+    const r = await fetch(`${KLIPY_BASE}/search?q=${encodeURIComponent(q)}&per_page=24&page=${page}`);
+    const json = await r.json();
+    res.json(json);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// Fetch a Klipy GIF by URL and upload it as a Bluesky blob
+app.post('/api/klipy/upload', async (req, res) => {
+  if (!KLIPY_API_KEY) return res.status(503).json({ error: 'GIF picker not configured' });
+  const { sessionId, gifUrl } = req.body ?? {};
+  const session = sessions.get(sessionId);
+  if (!session) return res.status(401).json({ error: 'Not logged in' });
+  if (!gifUrl) return res.status(400).json({ error: 'gifUrl required' });
+
+  try {
+    const gifRes = await fetch(gifUrl);
+    if (!gifRes.ok) throw new Error(`Failed to fetch GIF: ${gifRes.status}`);
+    const buffer = Buffer.from(await gifRes.arrayBuffer());
+    const mimeType = gifRes.headers.get('content-type') || 'image/gif';
+    const result = await session.agent.uploadBlob(buffer, { encoding: mimeType });
+    res.json({ blob: result.data.blob });
+  } catch (err) {
+    console.error('Klipy GIF upload failed:', err.message);
+    res.status(500).json({ error: 'Failed to upload GIF' });
   }
 });
 
