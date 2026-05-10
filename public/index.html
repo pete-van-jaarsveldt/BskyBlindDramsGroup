@@ -1838,7 +1838,10 @@ async function onKlipySelect(gifUrl, alt) {
       body: JSON.stringify({ sessionId, gifUrl }),
     });
     const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Upload failed');
+    if (!r.ok) {
+      if (r.status === 401) { closeKlipyModal(); showLoggedOut(); return; }
+      throw new Error(data.error || 'Upload failed');
+    }
 
     const item = { blob: data.blob, previewUrl: gifUrl, alt };
 
