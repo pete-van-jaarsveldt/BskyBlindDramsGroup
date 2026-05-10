@@ -181,9 +181,20 @@ app.post('/api/post', async (req, res) => {
   const rt = new RichText({ text: fullText });
   await rt.detectFacets(session.agent);
 
-  // Build image embed if any blobs were uploaded
+  // Build image embed if any blobs were uploaded.
+  // Each entry may be a raw blob ref OR { blob, alt, aspectRatio }.
   const embed = blobs?.length
-    ? { $type: 'app.bsky.embed.images', images: blobs.map(b => ({ image: b, alt: b.alt ?? '' })) }
+    ? {
+        $type: 'app.bsky.embed.images',
+        images: blobs.map(b => {
+          const isWrapped = b && typeof b === 'object' && b.blob;
+          const image = isWrapped ? b.blob : b;
+          const alt   = b.alt ?? '';
+          const entry = { image, alt };
+          if (isWrapped && b.aspectRatio) entry.aspectRatio = b.aspectRatio;
+          return entry;
+        }),
+      }
     : undefined;
 
   try {

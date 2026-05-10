@@ -1788,7 +1788,7 @@ eventPostBtn.addEventListener('click', async () => {
     const postRes = await fetch('/api/post', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, text, blobs: [uploadData.blob] }),
+      body: JSON.stringify({ sessionId, text, blobs: [{ blob: uploadData.blob, alt: 'Grape Expectations #BTC65', aspectRatio: { width: 1000, height: 600 } }] }),
     });
     const postData = await postRes.json();
     if (!postRes.ok) {
