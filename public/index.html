@@ -1170,6 +1170,11 @@ stageImgInputs.forEach(input => {
     await addImagesToList(input.files, list, () => renderStageImages(stage), button);
     input.value = '';
     updateStageStatus(stage);
+    if (posted[activeDram][stage]) {
+      posted[activeDram][stage] = false;
+      const stageBtn = document.querySelector(`[data-stage-post="${stage}"]`);
+      if (stageBtn) applyPostedStyle(stageBtn, false);
+    }
   });
 });
 
@@ -1216,6 +1221,11 @@ function renderStageImages(stage) {
       list.splice(idx, 1);
       renderStageImages(stage);
       updateStageStatus(stage);
+      if (posted[activeDram][stage]) {
+        posted[activeDram][stage] = false;
+        const btn = document.querySelector(`[data-stage-post="${stage}"]`);
+        if (btn) applyPostedStyle(btn, false);
+      }
     };
     previews.appendChild(wrap);
   });
@@ -1457,6 +1467,12 @@ for (let i = 1; i <= 5; i++) {
 }
 let activeDram = 1;
 
+// posted[dram][stage] = true once that stage has been successfully posted
+const posted = {};
+for (let i = 1; i <= 5; i++) {
+  posted[i] = { appearance:false, nose:false, palate:false, finish:false, score:false };
+}
+
 const dramTabs     = document.querySelectorAll('.dram-tab');
 const tStarsRow    = document.getElementById('t-stars');
 const tScoreDesc   = document.getElementById('t-score-desc');
@@ -1494,6 +1510,7 @@ function loadDram(n) {
   renderTStars(s.score);
   renderAllStageImages();
   updateAllStageStatuses();
+  refreshStageButtons();
   tDramNum.textContent = n;
   dramTabs.forEach(t => t.classList.toggle('active', parseInt(t.dataset.dram) === n));
 }
@@ -1502,7 +1519,13 @@ dramTabs.forEach(t => t.addEventListener('click', () => loadDram(parseInt(t.data
 stageFields.forEach(field => {
   field.addEventListener('input', () => {
     dramState[activeDram][field.dataset.stageField] = field.value;
-    updateStageStatus(field.dataset.stageField === 'scoreNote' ? 'score' : field.dataset.stageField);
+    const stage = field.dataset.stageField === 'scoreNote' ? 'score' : field.dataset.stageField;
+    updateStageStatus(stage);
+    if (posted[activeDram][stage]) {
+      posted[activeDram][stage] = false;
+      const btn = document.querySelector(`[data-stage-post="${stage}"]`);
+      if (btn) applyPostedStyle(btn, false);
+    }
   });
 });
 
@@ -1536,6 +1559,11 @@ tStarBtns.forEach(b => {
     dramState[activeDram].score = newVal;
     renderTStars(newVal);
     updateStageStatus('score');
+    if (posted[activeDram].score) {
+      posted[activeDram].score = false;
+      const btn = document.querySelector('[data-stage-post="score"]');
+      if (btn) applyPostedStyle(btn, false);
+    }
   });
 });
 
@@ -1627,6 +1655,26 @@ function markDone(n) {
   document.querySelector(`.dram-tab[data-dram="${n}"]`)?.classList.add('done');
 }
 
+function applyPostedStyle(btn, isPosted) {
+  if (isPosted) {
+    btn.disabled = true;
+    btn.textContent = 'Posted ✓';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'Post';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }
+}
+
+function refreshStageButtons() {
+  stagePostBtns.forEach(btn => {
+    applyPostedStyle(btn, posted[activeDram][btn.dataset.stagePost]);
+  });
+}
+
 // Stage post buttons
 stagePostBtns.forEach(btn => {
   btn.addEventListener('click', async () => {
@@ -1639,8 +1687,12 @@ stagePostBtns.forEach(btn => {
       const label = STAGES.find(item => item.key === stage)?.label.toLowerCase();
       showTastingFb(`✓ Dram ${activeDram} ${label} posted!`, 'ok');
       if (stage === 'score') markDone(activeDram);
-    } catch(e) { showTastingFb(e.message, 'err'); }
-    finally { btn.disabled = false; btn.textContent = 'Post'; }
+      posted[activeDram][stage] = true;
+      applyPostedStyle(btn, true);
+    } catch(e) {
+      showTastingFb(e.message, 'err');
+      applyPostedStyle(btn, false);
+    }
   });
 });
 
@@ -1822,6 +1874,7 @@ function showLoggedOut() {
   for (let i = 1; i <= 5; i++) {
     dramState[i] = blankDramState();
     stageImages[i] = blankStageImages();
+    posted[i] = { appearance:false, nose:false, palate:false, finish:false, score:false };
   }
   loadDram(1);
   dramTabs.forEach(t => t.classList.remove('done'));
@@ -2017,6 +2070,11 @@ async function onKlipySelect(gifUrl, alt) {
       updateStageStatus(klipyTarget);
       const stageBtn = document.querySelector(`[data-stage-img-btn="${klipyTarget}"]`);
       if (stageBtn) stageBtn.disabled = list.length >= 4;
+      if (posted[activeDram][klipyTarget]) {
+        posted[activeDram][klipyTarget] = false;
+        const postBtn = document.querySelector(`[data-stage-post="${klipyTarget}"]`);
+        if (postBtn) applyPostedStyle(postBtn, false);
+      }
     }
     closeKlipyModal();
   } catch (err) {
