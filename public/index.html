@@ -4,31 +4,36 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>#BlindDrams — Group Feed</title>
+<link rel="icon" type="image/jpeg" href="blinddrams-logo.jpeg">
 <!-- Emoji picker web component -->
 <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:      #0a0e17;
-    --surface: #111827;
-    --surf2:   #1a2333;
-    --border:  #1e2d3d;
-    --accent:  #3b82f6;
-    --text:    #e2e8f0;
-    --muted:   #64748b;
-    --amber:   #f59e0b;
+    --bg:      #080807;
+    --surface: #141311;
+    --surf2:   #201d18;
+    --border:  #383022;
+    --accent:  #e49a13;
+    --accent2: #d9a441;
+    --text:    #f6f1e8;
+    --muted:   #a99c87;
+    --amber:   #e49a13;
     --red:     #ef4444;
     --green:   #22c55e;
     --like:    #f43f5e;
-    --gold:    #fbbf24;
-    --sidebar: 340px;
+    --gold:    #f0b23b;
+    --sidebar: 360px;
+    --feed-image-max: 520px;
   }
 
   html, body { height: 100%; overflow: hidden; }
 
   body {
-    background: var(--bg);
+    background:
+      radial-gradient(circle at 18% -20%, rgba(228,154,19,.16), transparent 32rem),
+      linear-gradient(180deg, #0f0d0a 0%, var(--bg) 46%);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     display: flex;
@@ -37,12 +42,28 @@
 
   /* ── Header ─────────────────────────────────────── */
   header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 20px;
-    background: rgba(10,14,23,.95);
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 20px;
+    background: rgba(8,8,7,.94);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0,0,0,.22);
     flex-shrink: 0; z-index: 20;
+  }
+  .brand {
+    display:flex; align-items:center; gap:12px;
+    flex:1; min-width:0;
+  }
+  .brand-logo {
+    width:54px; height:54px; border-radius:50%;
+    object-fit:cover; flex-shrink:0;
+    border:1px solid rgba(228,154,19,.65);
+    box-shadow:0 0 0 3px rgba(228,154,19,.1);
+  }
+  .brand-kicker {
+    font-size:.65rem; font-weight:700;
+    letter-spacing:.12em; text-transform:uppercase;
+    color:var(--accent2);
   }
   #pulse {
     width:8px; height:8px; border-radius:50%;
@@ -53,10 +74,12 @@
     0%,100%{opacity:1;transform:scale(1);}
     50%{opacity:.4;transform:scale(.7);}
   }
-  header h1 { font-size:1.1rem; font-weight:700; flex:1; }
+  header h1 { font-size:1.15rem; font-weight:800; line-height:1.05; }
   header h1 span { color:var(--accent); }
+  .brand-subtitle { font-size:.76rem; color:var(--muted); margin-top:3px; }
   #count-badge {
-    background:var(--accent); color:#fff;
+    background:rgba(228,154,19,.16); color:var(--accent2);
+    border:1px solid rgba(228,154,19,.42);
     font-size:.7rem; font-weight:700;
     padding:2px 8px; border-radius:999px;
   }
@@ -70,6 +93,7 @@
     width: var(--sidebar);
     flex-shrink: 0;
     border-right: 1px solid var(--border);
+    background:rgba(14,13,11,.72);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -86,9 +110,9 @@
   #feed { display:flex; flex-direction:column; gap:9px; }
 
   .post {
-    background: var(--surface);
+    background: rgba(20,19,17,.94);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 13px;
     animation: slideIn .2s ease;
   }
@@ -154,6 +178,7 @@
     display: grid;
     gap: 4px;
     margin-top: 9px;
+    max-width: var(--feed-image-max);
     border-radius: 8px;
     overflow: hidden;
   }
@@ -173,6 +198,7 @@
 
   .post-gif-wrap {
     position: relative; width: 100%;
+    max-width: var(--feed-image-max);
     padding-top: 75%; /* 4:3 default ratio */
     border-radius: 8px; overflow: hidden;
     margin-top: 9px; background: var(--border);
@@ -200,6 +226,40 @@
   }
   #signout-btn:hover { color:var(--red); background:rgba(239,68,68,.1); }
 
+  .event-card {
+    display:flex; gap:10px;
+    padding:12px 14px;
+    border-bottom:1px solid var(--border);
+    background:rgba(228,154,19,.08);
+  }
+  .event-card img {
+    width:76px; height:48px;
+    object-fit:cover; border-radius:6px;
+    border:1px solid rgba(228,154,19,.34);
+    flex-shrink:0;
+  }
+  .event-meta { min-width:0; flex:1; }
+  .event-kicker {
+    font-size:.63rem; font-weight:800;
+    letter-spacing:.1em; text-transform:uppercase;
+    color:var(--accent2);
+  }
+  .event-title {
+    font-size:.86rem; font-weight:800;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    margin-top:2px;
+  }
+  .event-date { font-size:.7rem; color:var(--muted); margin-top:1px; }
+  .event-countdown {
+    display:inline-flex; align-items:center;
+    margin-top:6px; padding:3px 7px;
+    border:1px solid rgba(228,154,19,.35);
+    border-radius:999px;
+    color:var(--accent2);
+    font-size:.68rem; font-weight:800;
+    background:rgba(0,0,0,.2);
+  }
+
   /* Login */
   #login-section { padding:16px; flex-shrink:0; }
   .pl { font-size:.65rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
@@ -213,12 +273,12 @@
     padding:7px 10px; outline:none; width:100%;
     transition:border-color .15s;
   }
-  input:focus { border-color:var(--accent); }
+  input:focus, textarea:focus { border-color:var(--accent); }
 
   .btn-login {
     width:100%; padding:8px; border:none; border-radius:7px;
     font-size:.85rem; font-weight:600; cursor:pointer;
-    background:var(--accent); color:#fff;
+    background:var(--accent); color:#120d05;
     transition:opacity .15s;
   }
   .btn-login:disabled { opacity:.5; cursor:not-allowed; }
@@ -284,7 +344,7 @@
     color:var(--accent); border-radius:6px;
     transition:background .12s;
   }
-  .tool-btn:hover { background:rgba(59,130,246,.12); }
+  .tool-btn:hover { background:rgba(228,154,19,.12); }
   .tool-btn svg { width:18px; height:18px; }
   .tool-btn:disabled { opacity:.35; cursor:not-allowed; }
 
@@ -305,7 +365,7 @@
 
   #post-btn {
     margin-left:6px; padding:6px 14px;
-    background:var(--accent); color:#fff;
+    background:var(--accent); color:#120d05;
     border:none; border-radius:999px;
     font-size:.83rem; font-weight:700;
     cursor:pointer; transition:opacity .15s;
@@ -330,16 +390,16 @@
   emoji-picker {
     --background: #1a2333;
     --border-color: #1e2d3d;
-    --button-active-background: #243447;
-    --button-hover-background: #1e2d3d;
+    --button-active-background: #2c261a;
+    --button-hover-background: #383022;
     --category-emoji-size: 1.1rem;
     --emoji-size: 1.2rem;
-    --indicator-color: #3b82f6;
-    --input-border-color: #1e2d3d;
-    --input-font-color: #e2e8f0;
-    --input-placeholder-color: #64748b;
-    --outline-color: #3b82f6;
-    --text-color: #e2e8f0;
+    --indicator-color: #e49a13;
+    --input-border-color: #383022;
+    --input-font-color: #f6f1e8;
+    --input-placeholder-color: #a99c87;
+    --outline-color: #e49a13;
+    --text-color: #f6f1e8;
     height: 340px;
     width: 290px;
   }
@@ -366,7 +426,7 @@
 
   /* Section blocks */
   .dram-content { flex:1; overflow-y:auto; padding:11px; display:flex; flex-direction:column; gap:8px; }
-  .section-block { background:var(--surf2); border:1px solid var(--border); border-radius:9px; overflow:hidden; }
+  .section-block { background:var(--surf2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
   .section-header { display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-bottom:1px solid var(--border); }
   .section-label { font-size:.65rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
   .post-sec-btn { font-size:.68rem; font-weight:600; background:none; border:1px solid var(--border); color:var(--muted); border-radius:5px; padding:2px 7px; cursor:pointer; transition:all .12s; }
@@ -376,7 +436,7 @@
   .sec-textarea::placeholder { color:var(--muted); }
 
   /* Score picker */
-  .score-block { background:var(--surf2); border:1px solid var(--border); border-radius:9px; overflow:hidden; }
+  .score-block { background:var(--surf2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
   .score-header { display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-bottom:1px solid var(--border); }
   .stars-row { display:flex; justify-content:center; align-items:center; gap:5px; padding:9px 10px 4px; }
   .star-btn { background:none; border:none; cursor:pointer; font-size:1.4rem; line-height:1; padding:2px; transition:transform .12s; color:var(--border); }
@@ -386,9 +446,64 @@
   .star-btn.zero.selected { color:var(--red); }
   .t-score-desc { font-size:.7rem; color:var(--muted); font-style:italic; padding:0 10px 8px; line-height:1.4; min-height:32px; text-align:center; }
 
+  .stage-media {
+    display:flex; flex-direction:column; gap:8px;
+    background:rgba(32,29,24,.74);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:9px;
+  }
+  .stage-media-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .stage-media-title {
+    font-size:.65rem; font-weight:700;
+    letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted);
+  }
+  .stage-img-btn {
+    display:flex; align-items:center; gap:6px;
+    background:rgba(228,154,19,.12);
+    border:1px solid rgba(228,154,19,.4);
+    border-radius:6px; color:var(--accent2);
+    padding:5px 8px; font-size:.72rem; font-weight:700;
+    cursor:pointer;
+  }
+  .stage-img-btn:hover { background:rgba(228,154,19,.18); }
+  .stage-img-btn:disabled { opacity:.45; cursor:not-allowed; }
+  .stage-img-btn svg { width:15px; height:15px; }
+  .stage-img-note { font-size:.7rem; color:var(--muted); line-height:1.35; }
+  .stage-previews {
+    display:none; flex-wrap:wrap; gap:6px;
+  }
+  .stage-previews.on { display:flex; }
+
+  .stage-block { background:var(--surf2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .stage-head { display:flex; align-items:stretch; border-bottom:1px solid var(--border); }
+  .stage-block.collapsed .stage-head { border-bottom:none; }
+  .stage-toggle {
+    flex:1; min-width:0;
+    display:flex; align-items:center; gap:7px;
+    background:none; border:none; color:var(--text);
+    padding:8px 10px; cursor:pointer;
+    text-align:left;
+  }
+  .stage-chevron { color:var(--accent2); transition:transform .15s; }
+  .stage-block.collapsed .stage-chevron { transform:rotate(-90deg); }
+  .stage-title {
+    font-size:.65rem; font-weight:800;
+    letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted);
+  }
+  .stage-status {
+    margin-left:auto; color:var(--accent2);
+    font-size:.66rem; font-weight:700;
+    white-space:nowrap;
+  }
+  .stage-body { display:flex; flex-direction:column; gap:8px; padding:8px; }
+  .stage-block.collapsed .stage-body { display:none; }
+
   /* Post-all */
   .post-all-wrap { padding:0 11px 11px; flex-shrink:0; }
-  .post-all-btn { width:100%; padding:8px; background:var(--accent); color:#fff; border:none; border-radius:7px; font-size:.82rem; font-weight:700; cursor:pointer; transition:opacity .15s; }
+  .post-all-btn { width:100%; padding:8px; background:var(--accent); color:#120d05; border:none; border-radius:7px; font-size:.82rem; font-weight:700; cursor:pointer; transition:opacity .15s; }
   .post-all-btn:hover:not(:disabled) { opacity:.85; }
   .post-all-btn:disabled { opacity:.45; cursor:not-allowed; }
   #tasting-feedback { display:none; font-size:.72rem; border-radius:6px; padding:6px 10px; margin:0 11px 8px; }
@@ -403,13 +518,60 @@
     background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3);
     color:#fca5a5; border-radius:8px; padding:9px 13px; margin-bottom:10px; font-size:.82rem;
   }
+
+  @media (max-width: 760px) {
+    html, body { height:auto; min-height:100%; overflow:auto; }
+    header {
+      position:sticky; top:0;
+      align-items:flex-start; flex-wrap:wrap;
+      padding:9px 12px;
+    }
+    .brand { flex-basis:100%; }
+    .brand-logo { width:46px; height:46px; }
+    header h1 { font-size:1rem; }
+    .brand-subtitle { font-size:.7rem; }
+    #count-badge { margin-left:58px; }
+    .layout { flex-direction: column; overflow: visible; }
+    .compose-panel {
+      width:100%;
+      border-right:none; border-bottom:1px solid var(--border);
+      overflow:visible;
+    }
+    #compose-section.on, #tasting-panel, #free-post-panel.on {
+      min-height:auto; overflow:visible;
+    }
+    .dram-content, .feed-panel {
+      overflow:visible;
+    }
+    .dram-tabs {
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    .dram-tab { min-width:74px; }
+    .feed-panel { padding:12px 10px 28px; }
+    #feed { gap:10px; }
+    .post { padding:12px; }
+    .post-images, .post-gif-wrap { max-width:100%; }
+    .mode-tab { padding:11px 4px; }
+    .section-header, .score-header { padding:9px 10px; }
+    .sec-textarea { min-height:68px; font-size:.9rem; }
+    #compose-text { min-height:120px; }
+    emoji-picker { width:min(92vw, 320px); }
+  }
 </style>
 </head>
 <body>
 
 <header>
+  <div class="brand">
+    <img class="brand-logo" src="blinddrams-logo.jpeg" alt="Blind Tasting Consortium #BlindDrams logo">
+    <div>
+      <div class="brand-kicker">The Blind Tasting Consortium</div>
+      <h1><span>#BlindDrams</span> tasting room</h1>
+      <div class="brand-subtitle">Monthly blind dram notes, scores, photos and comments</div>
+    </div>
+  </div>
   <div id="pulse"></div>
-  <h1><span>#BlindDrams</span> Live Feed</h1>
   <span id="count-badge">0 posts</span>
   <span id="feed-status">connecting…</span>
 </header>
@@ -428,6 +590,16 @@
       </div>
       <button id="signout-btn">Sign out</button>
     </div>
+
+    <aside class="event-card" aria-label="Current tasting">
+      <img src="btc65-theme.jpeg" alt="Grape Expectations BTC65 theme artwork">
+      <div class="event-meta">
+        <div class="event-kicker">BTC65</div>
+        <div class="event-title">Grape Expectations</div>
+        <div class="event-date">13 Jun 2026 · 8:00pm UK</div>
+        <div class="event-countdown" id="event-countdown">Calculating…</div>
+      </div>
+    </aside>
 
     <!-- Login -->
     <div id="login-section">
@@ -463,29 +635,138 @@
           <button class="dram-tab"        data-dram="5">Dram 5</button>
         </div>
         <div class="dram-content">
-          <div class="section-block">
-            <div class="section-header"><span class="section-label">👃 Nose</span><button class="post-sec-btn" id="t-post-nose">Post</button></div>
-            <textarea class="sec-textarea" id="t-nose" placeholder="What do you smell?" rows="3"></textarea>
-          </div>
-          <div class="section-block">
-            <div class="section-header"><span class="section-label">👅 Palate</span><button class="post-sec-btn" id="t-post-palate">Post</button></div>
-            <textarea class="sec-textarea" id="t-palate" placeholder="What do you taste?" rows="3"></textarea>
-          </div>
-          <div class="section-block">
-            <div class="section-header"><span class="section-label">🔥 Finish</span><button class="post-sec-btn" id="t-post-finish">Post</button></div>
-            <textarea class="sec-textarea" id="t-finish" placeholder="How does it end?" rows="3"></textarea>
-          </div>
-          <div class="score-block">
-            <div class="score-header"><span class="section-label">🏅 Score</span><button class="post-sec-btn" id="t-post-score">Post</button></div>
-            <div class="stars-row" id="t-stars">
-              <button class="star-btn zero" data-score="0">🚫</button>
-              <button class="star-btn" data-score="1">★</button>
-              <button class="star-btn" data-score="2">★</button>
-              <button class="star-btn" data-score="3">★</button>
-              <button class="star-btn" data-score="4">★</button>
-              <button class="star-btn" data-score="5">★</button>
+          <div class="stage-block" data-stage="appearance">
+            <div class="stage-head">
+              <button class="stage-toggle" type="button" aria-expanded="true" data-stage-toggle="appearance">
+                <span class="stage-chevron">▾</span>
+                <span class="stage-title">Appearance</span>
+                <span class="stage-status" data-stage-status="appearance"></span>
+              </button>
+              <button class="post-sec-btn" data-stage-post="appearance">Post</button>
             </div>
-            <div class="t-score-desc" id="t-score-desc">Tap a star to score</div>
+            <div class="stage-body">
+              <textarea class="sec-textarea" data-stage-field="appearance" placeholder="Colour, legs, haze, bottle reveal guesses…" rows="3"></textarea>
+              <div class="stage-media">
+                <div class="stage-media-head">
+                  <span class="stage-media-title">Photo or GIF</span>
+                  <button class="stage-img-btn" type="button" data-stage-img-btn="appearance" title="Add image to appearance">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Add image
+                  </button>
+                  <input data-stage-img-input="appearance" type="file" accept="image/*" multiple style="display:none">
+                </div>
+                <div class="stage-previews" data-stage-previews="appearance"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage-block collapsed" data-stage="nose">
+            <div class="stage-head">
+              <button class="stage-toggle" type="button" aria-expanded="false" data-stage-toggle="nose">
+                <span class="stage-chevron">▾</span>
+                <span class="stage-title">Nose</span>
+                <span class="stage-status" data-stage-status="nose"></span>
+              </button>
+              <button class="post-sec-btn" data-stage-post="nose">Post</button>
+            </div>
+            <div class="stage-body">
+              <textarea class="sec-textarea" data-stage-field="nose" placeholder="What do you smell?" rows="3"></textarea>
+              <div class="stage-media">
+                <div class="stage-media-head">
+                  <span class="stage-media-title">Photo or GIF</span>
+                  <button class="stage-img-btn" type="button" data-stage-img-btn="nose" title="Add image to nose">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Add image
+                  </button>
+                  <input data-stage-img-input="nose" type="file" accept="image/*" multiple style="display:none">
+                </div>
+                <div class="stage-previews" data-stage-previews="nose"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage-block collapsed" data-stage="palate">
+            <div class="stage-head">
+              <button class="stage-toggle" type="button" aria-expanded="false" data-stage-toggle="palate">
+                <span class="stage-chevron">▾</span>
+                <span class="stage-title">Palate</span>
+                <span class="stage-status" data-stage-status="palate"></span>
+              </button>
+              <button class="post-sec-btn" data-stage-post="palate">Post</button>
+            </div>
+            <div class="stage-body">
+              <textarea class="sec-textarea" data-stage-field="palate" placeholder="What do you taste?" rows="3"></textarea>
+              <div class="stage-media">
+                <div class="stage-media-head">
+                  <span class="stage-media-title">Photo or GIF</span>
+                  <button class="stage-img-btn" type="button" data-stage-img-btn="palate" title="Add image to palate">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Add image
+                  </button>
+                  <input data-stage-img-input="palate" type="file" accept="image/*" multiple style="display:none">
+                </div>
+                <div class="stage-previews" data-stage-previews="palate"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage-block collapsed" data-stage="finish">
+            <div class="stage-head">
+              <button class="stage-toggle" type="button" aria-expanded="false" data-stage-toggle="finish">
+                <span class="stage-chevron">▾</span>
+                <span class="stage-title">Finish</span>
+                <span class="stage-status" data-stage-status="finish"></span>
+              </button>
+              <button class="post-sec-btn" data-stage-post="finish">Post</button>
+            </div>
+            <div class="stage-body">
+              <textarea class="sec-textarea" data-stage-field="finish" placeholder="How does it end?" rows="3"></textarea>
+              <div class="stage-media">
+                <div class="stage-media-head">
+                  <span class="stage-media-title">Photo or GIF</span>
+                  <button class="stage-img-btn" type="button" data-stage-img-btn="finish" title="Add image to finish">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Add image
+                  </button>
+                  <input data-stage-img-input="finish" type="file" accept="image/*" multiple style="display:none">
+                </div>
+                <div class="stage-previews" data-stage-previews="finish"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage-block collapsed" data-stage="score">
+            <div class="stage-head">
+              <button class="stage-toggle" type="button" aria-expanded="false" data-stage-toggle="score">
+                <span class="stage-chevron">▾</span>
+                <span class="stage-title">Score</span>
+                <span class="stage-status" data-stage-status="score"></span>
+              </button>
+              <button class="post-sec-btn" data-stage-post="score">Post</button>
+            </div>
+            <div class="stage-body">
+              <div class="stars-row" id="t-stars">
+                <button class="star-btn zero" data-score="0">🚫</button>
+                <button class="star-btn" data-score="1">★</button>
+                <button class="star-btn" data-score="2">★</button>
+                <button class="star-btn" data-score="3">★</button>
+                <button class="star-btn" data-score="4">★</button>
+                <button class="star-btn" data-score="5">★</button>
+              </div>
+              <div class="t-score-desc" id="t-score-desc">Tap a star to score</div>
+              <textarea class="sec-textarea" data-stage-field="scoreNote" placeholder="Optional score comment or GIF setup…" rows="2"></textarea>
+              <div class="stage-media">
+                <div class="stage-media-head">
+                  <span class="stage-media-title">Photo or GIF</span>
+                  <button class="stage-img-btn" type="button" data-stage-img-btn="score" title="Add image to score">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Add image
+                  </button>
+                  <input data-stage-img-input="score" type="file" accept="image/*" multiple style="display:none">
+                </div>
+                <div class="stage-previews" data-stage-previews="score"></div>
+              </div>
+            </div>
           </div>
         </div>
         <div id="tasting-feedback"></div>
@@ -582,12 +863,18 @@ const ringFill     = document.getElementById('ring-fill');
 const charNum      = document.getElementById('char-num');
 const postBtn      = document.getElementById('post-btn');
 const postFeedback = document.getElementById('post-feedback');
+const eventCountdown = document.getElementById('event-countdown');
+const stageFields  = document.querySelectorAll('[data-stage-field]');
+const stageImgBtns = document.querySelectorAll('[data-stage-img-btn]');
+const stageImgInputs = document.querySelectorAll('[data-stage-img-input]');
+const stagePostBtns = document.querySelectorAll('[data-stage-post]');
 
 // ── State ─────────────────────────────────────────────────────────
 let sessionId   = sessionStorage.getItem('bsk_sid') || null;
 let userInfo    = JSON.parse(sessionStorage.getItem('bsk_user') || 'null');
 let localLikes  = new Map();   // postUri → likeUri
 let pendingBlobs = [];          // [{ blob, previewUrl, alt }]
+const stageImages = {};         // dram number → stage → [{ blob, previewUrl, alt }]
 let lastUpdated  = null;
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -617,6 +904,55 @@ const heartFilled  = `<svg viewBox="0 0 24 24" fill="var(--like)"      stroke="v
 const MAX = 300;
 const SUFFIX_LEN = 13; // ' #BlindDrams'
 const CIRCUM = 56.5;
+const LOGIN_TIMEOUT_MS = 20_000;
+const TASTING_START_ISO = '2026-06-13T20:00:00+01:00';
+const STAGES = [
+  { key: 'appearance', label: 'Appearance', prefix: 'Appearance' },
+  { key: 'nose', label: 'Nose', prefix: 'On the nose' },
+  { key: 'palate', label: 'Palate', prefix: 'On the palate' },
+  { key: 'finish', label: 'Finish', prefix: 'The finish' },
+  { key: 'score', label: 'Score', prefix: 'Score' },
+];
+
+function updateCountdown() {
+  const diff = new Date(TASTING_START_ISO).getTime() - Date.now();
+  if (diff <= 0) {
+    document.querySelector('.event-card').style.display = 'none';
+    return;
+  }
+  const totalMinutes = Math.floor(diff / 60_000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  eventCountdown.textContent = `${days}d ${hours}h ${minutes}m to go`;
+}
+
+updateCountdown();
+setInterval(updateCountdown, 60_000);
+
+async function loginRequest(identifier, password) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), LOGIN_TIMEOUT_MS);
+
+  try {
+    const r = await fetch('/api/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ identifier, password }),
+      signal: controller.signal,
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Login failed');
+    return data;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Sign in timed out. Please try again.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function updateCharCount() {
   const raw = composeText.value;
@@ -670,40 +1006,64 @@ document.addEventListener('click', e => {
 
 // ── Image upload ──────────────────────────────────────────────────
 imgBtn.addEventListener('click', () => imgInput.click());
+stageImgBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelector(`[data-stage-img-input="${btn.dataset.stageImgBtn}"]`)?.click();
+  });
+});
 
-imgInput.addEventListener('change', async () => {
-  const files = [...imgInput.files].slice(0, 4 - pendingBlobs.length);
-  imgInput.value = '';
-  if (!files.length || !sessionId) return;
+async function uploadImageFile(file) {
+  if (!file.type.startsWith('image/')) return null;
+  const reader = new FileReader();
+  const data = await new Promise(res => {
+    reader.onload = e => res(e.target.result);
+    reader.readAsDataURL(file);
+  });
+  const base64 = data.split(',')[1];
 
-  imgBtn.disabled = true;
+  const r = await fetch('/api/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, imageData: base64, mimeType: file.type }),
+  });
+  const json = await r.json();
+  if (!r.ok) throw new Error(json.error);
+  return { blob: json.blob, previewUrl: data, alt: '' };
+}
 
-  for (const file of files) {
-    if (!file.type.startsWith('image/')) continue;
-    const reader = new FileReader();
-    const data = await new Promise(res => {
-      reader.onload = e => res(e.target.result);
-      reader.readAsDataURL(file);
-    });
-    const base64 = data.split(',')[1];
-    const previewUrl = data;
+async function addImagesToList(files, list, render, button) {
+  const selected = [...files].slice(0, 4 - list.length);
+  if (!selected.length || !sessionId) return;
 
+  button.disabled = true;
+  for (const file of selected) {
     try {
-      const r = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, imageData: base64, mimeType: file.type }),
-      });
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.error);
-      pendingBlobs.push({ blob: json.blob, previewUrl, alt: '' });
-      renderImgPreviews();
+      const item = await uploadImageFile(file);
+      if (item) {
+        list.push(item);
+        render();
+      }
     } catch (err) {
       console.error('Upload error:', err.message);
     }
   }
+  button.disabled = list.length >= 4;
+}
 
-  imgBtn.disabled = pendingBlobs.length >= 4;
+imgInput.addEventListener('change', async () => {
+  await addImagesToList(imgInput.files, pendingBlobs, renderImgPreviews, imgBtn);
+  imgInput.value = '';
+});
+
+stageImgInputs.forEach(input => {
+  input.addEventListener('change', async () => {
+    const stage = input.dataset.stageImgInput;
+    const list = stageImages[activeDram][stage];
+    const button = document.querySelector(`[data-stage-img-btn="${stage}"]`);
+    await addImagesToList(input.files, list, () => renderStageImages(stage), button);
+    input.value = '';
+    updateStageStatus(stage);
+  });
 });
 
 function renderImgPreviews() {
@@ -726,6 +1086,45 @@ function renderImgPreviews() {
     };
     imgPreviews.appendChild(wrap);
   });
+}
+
+function renderStageImages(stage) {
+  const list = stageImages[activeDram][stage];
+  const previews = document.querySelector(`[data-stage-previews="${stage}"]`);
+  const button = document.querySelector(`[data-stage-img-btn="${stage}"]`);
+  previews.innerHTML = '';
+  if (!list.length) {
+    previews.classList.remove('on');
+    button.disabled = false;
+    return;
+  }
+  previews.classList.add('on');
+  list.forEach((item, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'img-thumb';
+    wrap.innerHTML = `
+      <img src="${item.previewUrl}" alt="">
+      <button class="img-rm" title="Remove">✕</button>`;
+    wrap.querySelector('.img-rm').onclick = () => {
+      list.splice(idx, 1);
+      renderStageImages(stage);
+      updateStageStatus(stage);
+    };
+    previews.appendChild(wrap);
+  });
+  button.disabled = list.length >= 4;
+}
+
+function renderAllStageImages() {
+  STAGES.forEach(stage => renderStageImages(stage.key));
+}
+
+function getStageBlobs(dram, stage) {
+  return stageImages[dram][stage].map(b => b.blob);
+}
+
+function getDramBlobs(dram) {
+  return STAGES.flatMap(stage => getStageBlobs(dram, stage.key)).slice(0, 4);
 }
 
 // ── Post ──────────────────────────────────────────────────────────
@@ -910,28 +1309,32 @@ const SCORE_FULL = [
   "I'd suck the sweaty toes of a senior brand executive for the opportunity to have a single drop more of this.",
 ];
 
+function blankDramState() {
+  return { appearance:'', nose:'', palate:'', finish:'', score:null, scoreNote:'' };
+}
+
+function blankStageImages() {
+  return Object.fromEntries(STAGES.map(stage => [stage.key, []]));
+}
+
 // Per-dram state (keyed 1–5)
 const dramState = {};
-for (let i = 1; i <= 5; i++) dramState[i] = { nose:'', palate:'', finish:'', score:null };
+for (let i = 1; i <= 5; i++) {
+  dramState[i] = blankDramState();
+  stageImages[i] = blankStageImages();
+}
 let activeDram = 1;
 
-const dramTabs    = document.querySelectorAll('.dram-tab');
-const tNose       = document.getElementById('t-nose');
-const tPalate     = document.getElementById('t-palate');
-const tFinish     = document.getElementById('t-finish');
-const tStarsRow   = document.getElementById('t-stars');
-const tScoreDesc  = document.getElementById('t-score-desc');
-const tPostNose   = document.getElementById('t-post-nose');
-const tPostPalate = document.getElementById('t-post-palate');
-const tPostFinish = document.getElementById('t-post-finish');
-const tPostScore  = document.getElementById('t-post-score');
-const tPostAll    = document.getElementById('t-post-all');
-const tDramNum    = document.getElementById('t-dram-num');
-const tastingFb   = document.getElementById('tasting-feedback');
-const tabTasting  = document.getElementById('tab-tasting');
-const tabPost     = document.getElementById('tab-post');
-const tastingPanel= document.getElementById('tasting-panel');
-const freePanel   = document.getElementById('free-post-panel');
+const dramTabs     = document.querySelectorAll('.dram-tab');
+const tStarsRow    = document.getElementById('t-stars');
+const tScoreDesc   = document.getElementById('t-score-desc');
+const tPostAll     = document.getElementById('t-post-all');
+const tDramNum     = document.getElementById('t-dram-num');
+const tastingFb    = document.getElementById('tasting-feedback');
+const tabTasting   = document.getElementById('tab-tasting');
+const tabPost      = document.getElementById('tab-post');
+const tastingPanel = document.getElementById('tasting-panel');
+const freePanel    = document.getElementById('free-post-panel');
 
 // Mode switching
 tabTasting.addEventListener('click', () => {
@@ -945,22 +1348,39 @@ tabPost.addEventListener('click', () => {
 
 // Dram tabs
 function saveDram() {
-  dramState[activeDram].nose   = tNose.value;
-  dramState[activeDram].palate = tPalate.value;
-  dramState[activeDram].finish = tFinish.value;
+  stageFields.forEach(field => {
+    dramState[activeDram][field.dataset.stageField] = field.value;
+  });
 }
 function loadDram(n) {
   saveDram();
   activeDram = n;
   const s = dramState[n];
-  tNose.value   = s.nose;
-  tPalate.value = s.palate;
-  tFinish.value = s.finish;
+  stageFields.forEach(field => {
+    field.value = s[field.dataset.stageField] || '';
+  });
   renderTStars(s.score);
+  renderAllStageImages();
+  updateAllStageStatuses();
   tDramNum.textContent = n;
   dramTabs.forEach(t => t.classList.toggle('active', parseInt(t.dataset.dram) === n));
 }
 dramTabs.forEach(t => t.addEventListener('click', () => loadDram(parseInt(t.dataset.dram))));
+
+stageFields.forEach(field => {
+  field.addEventListener('input', () => {
+    dramState[activeDram][field.dataset.stageField] = field.value;
+    updateStageStatus(field.dataset.stageField === 'scoreNote' ? 'score' : field.dataset.stageField);
+  });
+});
+
+document.querySelectorAll('.stage-toggle').forEach(toggle => {
+  toggle.addEventListener('click', () => {
+    const block = toggle.closest('.stage-block');
+    const collapsed = block.classList.toggle('collapsed');
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+  });
+});
 
 // Star rating
 const tStarBtns = tStarsRow.querySelectorAll('.star-btn');
@@ -983,8 +1403,33 @@ tStarBtns.forEach(b => {
     const newVal = dramState[activeDram].score === v ? null : v;
     dramState[activeDram].score = newVal;
     renderTStars(newVal);
+    updateStageStatus('score');
   });
 });
+
+function hasStageDraft(dram, stage) {
+  const s = dramState[dram];
+  if (stage === 'score') return s.score !== null || Boolean(s.scoreNote.trim()) || stageImages[dram].score.length > 0;
+  return Boolean(s[stage].trim()) || stageImages[dram][stage].length > 0;
+}
+
+function updateStageStatus(stage) {
+  const status = document.querySelector(`[data-stage-status="${stage}"]`);
+  if (!status) return;
+  const s = dramState[activeDram];
+  const photoCount = stageImages[activeDram][stage].length;
+  const hasText = stage === 'score'
+    ? s.score !== null || Boolean(s.scoreNote.trim())
+    : Boolean(s[stage].trim());
+  const bits = [];
+  if (hasText) bits.push('draft');
+  if (photoCount) bits.push(`${photoCount} photo${photoCount === 1 ? '' : 's'}`);
+  status.textContent = bits.join(' · ');
+}
+
+function updateAllStageStatuses() {
+  STAGES.forEach(stage => updateStageStatus(stage.key));
+}
 
 // Tasting feedback
 function showTastingFb(msg, type) {
@@ -993,13 +1438,30 @@ function showTastingFb(msg, type) {
   setTimeout(() => { tastingFb.className = ''; tastingFb.style.display = 'none'; }, 4000);
 }
 
-// Build post text for a tasting section (server appends #BlindDrams)
-function tastingText(dram, { nose, palate, finish, score }) {
+function stageText(dram, stage) {
+  const s = dramState[dram];
+  const meta = STAGES.find(item => item.key === stage);
+  if (stage === 'score') {
+    const scoreText = s.score !== null
+      ? `${'⭐'.repeat(s.score)}${s.score===0?'🚫':''} ${s.score}/5 - ${SCORE_FULL[s.score]}`
+      : '';
+    return `Dram ${dram} - Score${scoreText ? `: ${scoreText}` : ''}${s.scoreNote.trim() ? ` ${s.scoreNote.trim()}` : ''}`;
+  }
+  const text = s[stage].trim();
+  return `Dram ${dram} - ${meta.prefix}${text ? `: ${text}` : ''}`;
+}
+
+// Build post text for tasting notes (server appends #BlindDrams)
+function tastingText(dram, payload = {}) {
+  if (payload.stage) return stageText(dram, payload.stage);
+  const s = dramState[dram];
   const parts = [];
-  if (nose)           parts.push(`On the nose: ${nose}`);
-  if (palate)         parts.push(`On the palate: ${palate}`);
-  if (finish)         parts.push(`The finish: ${finish}`);
-  if (score != null)  parts.push(`Score: ${'⭐'.repeat(score)}${score===0?'🚫':''} ${score}/5 - ${SCORE_FULL[score]}`);
+  if (s.appearance.trim()) parts.push(`Appearance: ${s.appearance.trim()}`);
+  if (s.nose.trim())       parts.push(`On the nose: ${s.nose.trim()}`);
+  if (s.palate.trim())     parts.push(`On the palate: ${s.palate.trim()}`);
+  if (s.finish.trim())     parts.push(`The finish: ${s.finish.trim()}`);
+  if (s.score != null)     parts.push(`Score: ${'⭐'.repeat(s.score)}${s.score===0?'🚫':''} ${s.score}/5 - ${SCORE_FULL[s.score]}`);
+  if (s.scoreNote.trim())  parts.push(`Score note: ${s.scoreNote.trim()}`);
   return `Dram ${dram} - ${parts.join('. ')}`;
 }
 
@@ -1008,10 +1470,23 @@ async function postTasting(payload) {
   const text = tastingText(payload.dram, payload);
   const r = await fetch('/api/post', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, text }),
+    body: JSON.stringify({
+      sessionId,
+      text,
+      blobs: payload.stage ? getStageBlobs(payload.dram, payload.stage) : getDramBlobs(payload.dram),
+    }),
   });
   const data = await r.json();
   if (!r.ok) throw new Error(data.error || 'Post failed');
+  if (payload.stage) {
+    stageImages[payload.dram][payload.stage] = [];
+  } else {
+    stageImages[payload.dram] = blankStageImages();
+  }
+  if (payload.dram === activeDram) {
+    renderAllStageImages();
+    updateAllStageStatuses();
+  }
   pollFeed();
   return data;
 }
@@ -1020,22 +1495,18 @@ function markDone(n) {
   document.querySelector(`.dram-tab[data-dram="${n}"]`)?.classList.add('done');
 }
 
-// Section post buttons
-[
-  [tPostNose,   () => ({ nose:   tNose.value.trim() })  , 'nose posted!'],
-  [tPostPalate, () => ({ palate: tPalate.value.trim() }), 'palate posted!'],
-  [tPostFinish, () => ({ finish: tFinish.value.trim() }), 'finish posted!'],
-  [tPostScore,  () => ({ score:  dramState[activeDram].score }), 'score posted!'],
-].forEach(([btn, getPayload, msg]) => {
+// Stage post buttons
+stagePostBtns.forEach(btn => {
   btn.addEventListener('click', async () => {
-    const payload = getPayload();
-    const val = Object.values(payload)[0];
-    if (val === null || val === undefined || val === '') return;
+    saveDram();
+    const stage = btn.dataset.stagePost;
+    if (!hasStageDraft(activeDram, stage)) return;
     btn.disabled = true; btn.textContent = '…';
     try {
-      await postTasting({ dram: activeDram, ...payload });
-      showTastingFb(`✓ Dram ${activeDram} ${msg}`, 'ok');
-      if (msg === 'score posted!') markDone(activeDram);
+      await postTasting({ dram: activeDram, stage });
+      const label = STAGES.find(item => item.key === stage)?.label.toLowerCase();
+      showTastingFb(`✓ Dram ${activeDram} ${label} posted!`, 'ok');
+      if (stage === 'score') markDone(activeDram);
     } catch(e) { showTastingFb(e.message, 'err'); }
     finally { btn.disabled = false; btn.textContent = 'Post'; }
   });
@@ -1044,14 +1515,12 @@ function markDone(n) {
 // Post everything
 tPostAll.addEventListener('click', async () => {
   saveDram();
-  const s = dramState[activeDram];
-  const nose = s.nose.trim(), palate = s.palate.trim(), finish = s.finish.trim(), score = s.score;
-  if (!nose && !palate && !finish && score === null) {
+  if (!STAGES.some(stage => hasStageDraft(activeDram, stage.key))) {
     showTastingFb('Nothing filled in yet.', 'err'); return;
   }
   tPostAll.disabled = true; tPostAll.textContent = 'Posting…';
   try {
-    await postTasting({ dram: activeDram, nose, palate, finish, score });
+    await postTasting({ dram: activeDram });
     showTastingFb(`✓ Dram ${activeDram} posted!`, 'ok');
     markDone(activeDram);
   } catch(e) { showTastingFb(e.message, 'err'); }
@@ -1124,7 +1593,10 @@ function showLoggedOut() {
   pendingBlobs = [];
   renderImgPreviews();
   // Reset tasting state
-  for (let i = 1; i <= 5; i++) dramState[i] = { nose:'', palate:'', finish:'', score:null };
+  for (let i = 1; i <= 5; i++) {
+    dramState[i] = blankDramState();
+    stageImages[i] = blankStageImages();
+  }
   loadDram(1);
   dramTabs.forEach(t => t.classList.remove('done'));
 }
@@ -1138,12 +1610,7 @@ loginBtn.addEventListener('click', async () => {
   loginBtn.textContent = 'Signing in…';
   loginErrEl.style.display = 'none';
   try {
-    const r = await fetch('/api/login', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ identifier, password }),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error||'Login failed');
+    const data = await loginRequest(identifier, password);
     sessionId = data.sessionId;
     sessionStorage.setItem('bsk_sid',  data.sessionId);
     sessionStorage.setItem('bsk_user', JSON.stringify(data));
