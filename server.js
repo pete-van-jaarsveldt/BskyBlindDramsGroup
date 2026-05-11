@@ -112,6 +112,7 @@ const sessions = new Map();
 
 // ── Express ───────────────────────────────────────────────────────────────────
 const app = express();
+app.set('trust proxy', true);
 app.use(express.json({ limit: '10mb' }));   // allow base64-encoded images
 app.use(express.static('public'));
 

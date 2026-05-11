@@ -1520,7 +1520,19 @@ stageFields.forEach(field => {
 
 document.querySelectorAll('.stage-toggle').forEach(toggle => {
   toggle.addEventListener('click', () => {
-    const block = toggle.closest('.stage-block');
+    const block    = toggle.closest('.stage-block');
+    const isNowOpen = block.classList.contains('collapsed'); // about to un-collapse
+
+    // Accordion: collapse every other stage block in the same dram
+    if (isNowOpen) {
+      block.closest('.dram-content')?.querySelectorAll('.stage-block').forEach(b => {
+        if (b !== block) {
+          b.classList.add('collapsed');
+          b.querySelector('.stage-toggle')?.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
     const collapsed = block.classList.toggle('collapsed');
     toggle.setAttribute('aria-expanded', String(!collapsed));
   });
@@ -1811,6 +1823,28 @@ feedPanel.addEventListener('scroll', () => {
 });
 
 // ── Auth ──────────────────────────────────────────────────────────
+function refreshLikeButtons() {
+  for (const [uri, entry] of renderedPosts) {
+    const btn = entry.node.querySelector('.like-btn');
+    if (!btn) continue;
+    const lc  = btn.querySelector('.lc');
+    if (localLikes.has(uri)) {
+      if (!btn.classList.contains('liked')) {
+        btn.classList.add('liked');
+        // swap outline svg for filled svg, keep the count span
+        const count = lc ? lc.textContent : '0';
+        btn.innerHTML = `${heartFilled}<span class="lc">${count}</span>`;
+      }
+    } else {
+      if (btn.classList.contains('liked')) {
+        btn.classList.remove('liked');
+        const count = lc ? lc.textContent : '0';
+        btn.innerHTML = `${heartOutline}<span class="lc">${count}</span>`;
+      }
+    }
+  }
+}
+
 async function loadViewerLikes() {
   if (!sessionId) return;
   try {
@@ -1820,7 +1854,7 @@ async function loadViewerLikes() {
     for (const [uri, likeUri] of Object.entries(likes)) {
       localLikes.set(uri, likeUri);
     }
-    pollFeed(); // re-render with filled hearts
+    refreshLikeButtons(); // patch existing nodes in-place; no need to rebuild
   } catch (e) {}
 }
 
