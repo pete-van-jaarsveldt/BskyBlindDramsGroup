@@ -77,6 +77,8 @@
   header h1 { font-size:1.15rem; font-weight:800; line-height:1.05; }
   header h1 span { color:var(--accent); }
   .brand-subtitle { font-size:.76rem; color:var(--muted); margin-top:3px; }
+  .brand-subtitle a { color:var(--accent2); text-underline-offset:2px; }
+  .brand-subtitle a:hover { color:var(--accent); }
 
   /* ── Two-column layout ───────────────────────────── */
   .layout { display:flex; flex:1; overflow:hidden; }
@@ -219,38 +221,37 @@
   }
   #signout-btn:hover { color:var(--red); background:rgba(239,68,68,.1); }
 
-  .event-card {
-    display:flex; gap:10px;
-    padding:12px 14px;
-    border-bottom:1px solid var(--border);
-    background:rgba(228,154,19,.08);
+  .event-countdown {
+    display:inline-flex; align-items:center;
+    padding:2px 7px;
+    border:1px solid rgba(228,154,19,.35);
+    border-radius:999px;
+    color:var(--accent2);
+    font-size:.65rem; font-weight:800;
+    background:rgba(0,0,0,.2);
+    white-space:nowrap;
   }
-  .event-card img {
-    width:76px; height:48px;
+  #event-post-btn:hover:not(:disabled) { background:rgba(228,154,19,.18); }
+  #event-post-btn:disabled { opacity:.45; }
+
+  /* ── Header event strip ────────────────────────── */
+  .header-event {
+    display:flex; align-items:center; gap:7px;
+    flex-shrink:0; white-space:nowrap;
+    font-size:.67rem;
+  }
+  .header-event-img {
+    width:86px; height:54px;
     object-fit:cover; border-radius:6px;
     border:1px solid rgba(228,154,19,.34);
     flex-shrink:0;
   }
-  .event-meta { min-width:0; flex:1; }
-  .event-kicker {
-    font-size:.63rem; font-weight:800;
-    letter-spacing:.1em; text-transform:uppercase;
-    color:var(--accent2);
+  .header-event-kicker {
+    font-weight:800; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--accent2);
   }
-  .event-title {
-    font-size:.86rem; font-weight:800;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    margin-top:2px;
-  }
-  .event-date { font-size:.7rem; color:var(--muted); margin-top:1px; }
-  .event-countdown {
-    display:inline-flex; align-items:center;
-    margin-top:6px; padding:3px 7px;
-    border:1px solid rgba(228,154,19,.35);
-    border-radius:999px;
-    color:var(--accent2);
-    font-size:.68rem; font-weight:800;
-    background:rgba(0,0,0,.2);
+  .header-event-title {
+    color:var(--muted); font-weight:500;
   }
 
   /* Login */
@@ -437,7 +438,7 @@
   .star-btn.filled { color:var(--gold); }
   .star-btn.zero { font-size:1.1rem; color:var(--muted); }
   .star-btn.zero.selected { color:var(--red); }
-  .t-score-desc { font-size:.7rem; color:var(--muted); font-style:italic; padding:0 10px 8px; line-height:1.4; min-height:32px; text-align:center; }
+  .t-score-desc { font-size:.7rem; color:var(--muted); font-style:italic; padding:0 10px 4px; line-height:1.4; text-align:center; }
 
   .stage-media {
     display:flex; flex-direction:column; gap:8px;
@@ -627,10 +628,17 @@
     <div>
       <div class="brand-kicker">The Blind Tasting Consortium</div>
       <h1><span>#BlindDrams</span> tasting room</h1>
-      <div class="brand-subtitle">Monthly blind dram notes, scores, photos and comments</div>
+      <div class="brand-subtitle">Monthly blind dram notes, scores, photos and comments. <a href="https://malt-musings.blogspot.com/2020/08/blind-tasting-consortium.html" target="_blank" rel="noopener">Click here for more info</a></div>
     </div>
   </div>
   <div id="pulse"></div>
+  <div class="header-event" id="header-event">
+    <img class="header-event-img" src="btc65-theme.jpeg" alt="Grape Expectations BTC65 theme artwork">
+    <span class="header-event-kicker">#BTC65</span>
+    <span class="header-event-title">Grape Expectations · 13 Jun</span>
+    <span class="event-countdown" id="event-countdown">Calculating…</span>
+    <button id="event-post-btn" style="display:none" class="event-countdown" title="Post this event to Bluesky">Post this</button>
+  </div>
 </header>
 
 <div class="layout">
@@ -648,16 +656,7 @@
       <button id="signout-btn">Sign out</button>
     </div>
 
-    <aside class="event-card" aria-label="Current tasting">
-      <img src="btc65-theme.jpeg" alt="Grape Expectations BTC65 theme artwork">
-      <div class="event-meta">
-        <div class="event-kicker">#BTC65</div>
-        <div class="event-title">Grape Expectations</div>
-        <div class="event-date">13 Jun 2026 · 8:00pm UK</div>
-        <div class="event-countdown" id="event-countdown">Calculating…</div>
-        <button id="event-post-btn" style="display:none" class="event-countdown" title="Post this event to Bluesky">Post this ↗</button>
-      </div>
-    </aside>
+
 
     <!-- Login -->
     <div id="login-section">
@@ -827,8 +826,8 @@
                 <button class="star-btn" data-score="4">★</button>
                 <button class="star-btn" data-score="5">★</button>
               </div>
-              <div class="t-score-desc" id="t-score-desc">Tap a star to score</div>
-              <textarea class="sec-textarea" data-stage-field="scoreNote" placeholder="Optional score comment or GIF setup…" rows="2"></textarea>
+              <div class="t-score-desc" id="t-score-desc"></div>
+              <textarea class="sec-textarea" data-stage-field="scoreNote" placeholder="Optional score comment…" rows="1"></textarea>
               <div class="stage-media">
                 <div class="stage-media-head">
                   <span class="stage-media-title">Photo or GIF</span>
@@ -1016,7 +1015,7 @@ const STAGES = [
 function updateCountdown() {
   const diff = new Date(TASTING_START_ISO).getTime() - Date.now();
   if (diff <= 0) {
-    document.querySelector('.event-card').style.display = 'none';
+    document.getElementById('header-event').style.display = 'none';
     return;
   }
   const totalMinutes = Math.floor(diff / 60_000);
@@ -1111,19 +1110,61 @@ stageImgBtns.forEach(btn => {
   });
 });
 
+// Bluesky's PDS rejects image blobs larger than this (bytes).
+const BSKY_MAX_BLOB_BYTES = 2_000_000;
+const IMG_TARGET_BYTES    = 1_900_000;   // downscale target, leaves margin under the hard limit
+const IMG_MAX_EDGE        = 1920;        // longest side after downscale
+
+// Phone photos routinely exceed 2MB. Re-encode oversized photos via canvas so the
+// upload fits under BSKY_MAX_BLOB_BYTES. GIFs and already-small files pass through
+// untouched (re-encoding a GIF through a canvas would drop its animation).
+async function downscaleImage(file) {
+  if (file.type === 'image/gif') return file;
+  if (file.size <= IMG_TARGET_BYTES) return file;
+
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch {
+    return file;   // can't decode → leave it; server will surface the size error as before
+  }
+
+  const scale = Math.min(1, IMG_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  const width  = Math.max(1, Math.round(bitmap.width  * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+  bitmap.close?.();
+
+  let quality = 0.9;
+  let blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+  while (blob && blob.size > IMG_TARGET_BYTES && quality > 0.4) {
+    quality -= 0.1;
+    blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+  }
+  if (!blob) return file;
+
+  const name = (file.name || 'image').replace(/\.[^.]+$/, '') + '.jpg';
+  return new File([blob], name, { type: 'image/jpeg' });
+}
+
 async function uploadImageFile(file) {
   if (!file.type.startsWith('image/')) return null;
+  const upload = await downscaleImage(file);
   const reader = new FileReader();
   const data = await new Promise(res => {
     reader.onload = e => res(e.target.result);
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(upload);
   });
   const base64 = data.split(',')[1];
 
   const r = await fetch('/api/upload', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, imageData: base64, mimeType: file.type }),
+    body: JSON.stringify({ sessionId, imageData: base64, mimeType: upload.type }),
   });
   const json = await r.json();
   if (!r.ok) throw new Error(json.error);
@@ -1546,13 +1587,13 @@ function renderTStars(sel) {
     v === 0 ? b.classList.toggle('selected', sel === 0)
             : b.classList.toggle('filled', sel !== null && v <= sel);
   });
-  tScoreDesc.textContent = sel !== null ? SCORE_SHORT[sel] : 'Tap a star to score';
+  tScoreDesc.textContent = sel !== null ? SCORE_SHORT[sel] : '';
 }
 tStarBtns.forEach(b => {
   b.addEventListener('mouseenter', () => tScoreDesc.textContent = SCORE_SHORT[parseInt(b.dataset.score)]);
   b.addEventListener('mouseleave', () => {
     const cur = dramState[activeDram].score;
-    tScoreDesc.textContent = cur !== null ? SCORE_SHORT[cur] : 'Tap a star to score';
+    tScoreDesc.textContent = cur !== null ? SCORE_SHORT[cur] : '';
   });
   b.addEventListener('click', () => {
     const v = parseInt(b.dataset.score);
@@ -1828,6 +1869,16 @@ function refreshLikeButtons() {
     const btn = entry.node.querySelector('.like-btn');
     if (!btn) continue;
     const lc  = btn.querySelector('.lc');
+
+    // Enable/disable based on login state
+    if (sessionId) {
+      btn.removeAttribute('disabled');
+      btn.removeAttribute('title');
+    } else {
+      btn.setAttribute('disabled', '');
+      btn.setAttribute('title', 'Sign in to like');
+    }
+
     if (localLikes.has(uri)) {
       if (!btn.classList.contains('liked')) {
         btn.classList.add('liked');
@@ -1866,6 +1917,7 @@ function showLoggedIn(data) {
   uAvatar.style.display = data.avatar ? 'block' : 'none';
   uName.textContent   = data.displayName;
   uHandle.textContent = `@${data.handle}`;
+  refreshLikeButtons(); // enable all pre-rendered like buttons now that user is logged in
 }
 
 function showLoggedOut() {
@@ -1887,6 +1939,7 @@ function showLoggedOut() {
   }
   loadDram(1);
   dramTabs.forEach(t => t.classList.remove('done'));
+  refreshLikeButtons(); // re-disable all pre-rendered like buttons after sign-out
 }
 
 loginBtn.addEventListener('click', async () => {

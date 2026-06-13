@@ -47,6 +47,22 @@ test('shows the current tasting theme and countdown without auto-adding the BTC 
   assert.doesNotMatch(html, /#BTC65`|#BTC65\s*\$\{/);
 });
 
+test('every getElementById reference resolves to an element id (a missing id throws and kills the whole inline script, breaking login)', () => {
+  const referenced = [...new Set([...html.matchAll(/getElementById\('([^']+)'\)/g)].map(m => m[1]))];
+  const defined = new Set([...html.matchAll(/id="([^"]+)"/g)].map(m => m[1]));
+  const orphans = referenced.filter(id => !defined.has(id));
+  assert.deepEqual(orphans, [], `getElementById() references with no matching id="..." in the markup: ${orphans.join(', ')}`);
+});
+
+test('downscales oversized photos client-side so posts stay under the 2MB Bluesky blob limit', () => {
+  assert.match(html, /function downscaleImage/);
+  assert.match(html, /createImageBitmap/);          // decode for canvas re-encode
+  assert.match(html, /BSKY_MAX_BLOB_BYTES\s*=\s*2_?000_?000/);
+  assert.match(html, /image\/gif/);                 // GIFs passed through untouched (preserve animation)
+  // the single upload chokepoint must route through the downscaler
+  assert.match(html, /async function uploadImageFile[\s\S]*?downscaleImage\(/);
+});
+
 test('uses collapsible per-dram workflow stages without a Ready stage', () => {
   assert.match(html, /data-stage="appearance"/);
   assert.match(html, /Appearance/);
