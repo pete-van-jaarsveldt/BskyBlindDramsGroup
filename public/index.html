@@ -633,9 +633,9 @@
   </div>
   <div id="pulse"></div>
   <div class="header-event" id="header-event">
-    <img class="header-event-img" src="btc65-theme.jpeg" alt="Grape Expectations BTC65 theme artwork">
-    <span class="header-event-kicker">#BTC65</span>
-    <span class="header-event-title">Grape Expectations · 13 Jun</span>
+    <img class="header-event-img" src="btc66-theme.jpeg" alt="Cruising with Gail BTC66 theme artwork">
+    <span class="header-event-kicker">#BTC66</span>
+    <span class="header-event-title">Cruising with Gail · 18 Jul</span>
     <span class="event-countdown" id="event-countdown">Calculating…</span>
     <button id="event-post-btn" style="display:none" class="event-countdown" title="Post this event to Bluesky">Post this</button>
   </div>
@@ -1003,7 +1003,7 @@ const MAX = 300;
 const SUFFIX_LEN = 13; // ' #BlindDrams'
 const CIRCUM = 56.5;
 const LOGIN_TIMEOUT_MS = 20_000;
-const TASTING_START_ISO = '2026-06-13T20:00:00+01:00';
+const TASTING_START_ISO = '2026-07-18T20:00:00+01:00';
 const STAGES = [
   { key: 'appearance', label: 'Appearance', prefix: 'Appearance' },
   { key: 'nose', label: 'Nose', prefix: 'On the nose' },
@@ -1996,7 +1996,7 @@ eventPostBtn.addEventListener('click', async () => {
   eventPostBtn.textContent = 'Posting…';
   try {
     // Fetch the event image and upload it as a blob
-    const imgRes = await fetch('/btc65-theme.jpeg');
+    const imgRes = await fetch('/btc66-theme.jpeg');
     const buffer = await imgRes.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     let binary = '';
@@ -2011,11 +2011,11 @@ eventPostBtn.addEventListener('click', async () => {
     if (!uploadRes.ok) throw new Error(uploadData.error || 'Upload failed');
 
     const countdown = eventCountdown.textContent;
-    const text = `Grape Expectations — ${countdown} #BTC65 #BlindDrams`;
+    const text = `Cruising with Gail — ${countdown} #BTC66 #BlindDrams`;
     const postRes = await fetch('/api/post', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, text, blobs: [{ blob: uploadData.blob, alt: 'Grape Expectations #BTC65', aspectRatio: { width: 1000, height: 600 } }] }),
+      body: JSON.stringify({ sessionId, text, blobs: [{ blob: uploadData.blob, alt: 'Cruising with Gail #BTC66', aspectRatio: { width: 1000, height: 600 } }] }),
     });
     const postData = await postRes.json();
     if (!postRes.ok) {

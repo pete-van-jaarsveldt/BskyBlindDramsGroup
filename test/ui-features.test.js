@@ -39,12 +39,12 @@ test('bounds login requests so the sign-in button can recover', () => {
 });
 
 test('shows the current tasting theme and countdown without auto-adding the BTC tag', () => {
-  assert.match(html, /BTC65/);
-  assert.match(html, /Grape Expectations/);
-  assert.match(html, /btc65-theme\.jpeg/);
+  assert.match(html, /BTC66/);
+  assert.match(html, /Cruising with Gail/);
+  assert.match(html, /btc66-theme\.jpeg/);
   assert.match(html, /TASTING_START_ISO/);
   assert.match(html, /id="event-countdown"/);
-  assert.doesNotMatch(html, /#BTC65`|#BTC65\s*\$\{/);
+  assert.doesNotMatch(html, /#BTC66`|#BTC66\s*\$\{/);
 });
 
 test('every getElementById reference resolves to an element id (a missing id throws and kills the whole inline script, breaking login)', () => {
