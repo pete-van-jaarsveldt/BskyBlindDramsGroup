@@ -421,6 +421,62 @@ app.post('/api/admin/login', (req, res) => {
   res.json({ adminToken, expiresAt });
 });
 
+app.post('/api/admin/event', async (req, res) => {
+  if (!adminConfigured()) return res.status(503).json({ error: 'Admin not configured' });
+  if (!requireAdmin(req)) return res.status(401).json({ error: 'Not signed in to admin' });
+
+  const check = validateEventInput(req.body ?? {});
+  if (!check.ok) return res.status(400).json({ error: check.error });
+  const { number, title, startIso, imageBuffer } = check.value;
+
+  const repoOpts = { token: GITHUB_TOKEN, repo: GITHUB_REPO, branch: 'main' };
+
+  try {
+    const files = [];
+    let imagePath;
+
+    if (imageBuffer) {
+      imagePath = bannerPath(number);
+      files.push({
+        path: `public/${imagePath}`,
+        content: imageBuffer.toString('base64'),
+        encoding: 'base64',
+      });
+    } else {
+      // No new banner: keep whatever the committed config already points at.
+      // Deriving it from the number would point the card at a file nobody uploaded.
+      const current = await readRepoFile({ ...repoOpts, path: 'public/event.json' });
+      const parsed = current ? JSON.parse(current) : null;
+      imagePath = parsed?.imagePath;
+      if (!imagePath) {
+        return res.status(400).json({ error: 'No existing banner to keep — upload an image' });
+      }
+    }
+
+    files.push({
+      path: 'public/event.json',
+      content: buildEventJson({ number, title, startIso, imagePath }),
+      encoding: 'utf-8',
+    });
+
+    const { commitUrl } = await commitFiles({
+      ...repoOpts,
+      message: `chore: set BTC${number} ${title} banner and date`,
+      files,
+    });
+
+    console.log(`Admin updated event to BTC${number}`);
+    res.json({
+      ok: true,
+      commitUrl,
+      actionsUrl: `https://github.com/${GITHUB_REPO}/actions`,
+    });
+  } catch (err) {
+    console.error('Admin event update failed:', err.message);
+    res.status(502).json({ error: `Could not save: ${err.message}` });
+  }
+});
+
 // Health check
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 

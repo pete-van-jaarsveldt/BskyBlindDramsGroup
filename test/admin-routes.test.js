@@ -40,3 +40,36 @@ test('the admin password VALUE is never logged', () => {
   assert.doesNotMatch(server, /console\.[a-z]+\([^)]*,\s*password\b/);
   assert.doesNotMatch(server, /console\.[a-z]+\([^)]*req\.body\.password/);
 });
+
+test('the event route validates through the shared helper rather than inline', () => {
+  assert.match(server, /validateEventInput\(/);
+  assert.match(server, /status\(400\)/);
+});
+
+test('imagePath is carried forward when no new banner is uploaded', () => {
+  // Deriving it from the number unconditionally would point the card at a
+  // banners/btcNN.jpg that was never uploaded.
+  assert.match(server, /readRepoFile\(/);
+  assert.match(server, /imagePath/);
+});
+
+test('the commit goes through the atomic helper and reports the commit URL', () => {
+  assert.match(server, /commitFiles\(/);
+  assert.match(server, /commitUrl/);
+  assert.match(server, /actionsUrl/);
+});
+
+test('a GitHub failure is surfaced as a 502, not swallowed', () => {
+  // A bare /status\(502\)/ would pass vacuously: /api/feed already returns 502.
+  // Anchor on the admin route's own message so this test can actually fail.
+  assert.match(server, /Could not save/);
+  assert.match(server, /status\(502\)\.json\(\{ error: `Could not save/);
+});
+
+test('the GitHub token VALUE is never logged or returned', () => {
+  // Same false-positive trap as the ADMIN_PASSWORD test: GITHUB_TOKEN is named in
+  // the startup warning string, which is correct. Target the value instead.
+  assert.doesNotMatch(server, /console\.[a-z]+\([^)]*\$\{[^}]*GITHUB_TOKEN/);
+  assert.doesNotMatch(server, /console\.[a-z]+\([^)]*,\s*GITHUB_TOKEN\b/);
+  assert.doesNotMatch(server, /res\.json\([^)]*GITHUB_TOKEN/);
+});
