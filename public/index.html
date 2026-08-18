@@ -1273,10 +1273,6 @@ function getStageBlobs(dram, stage) {
   return stageImages[dram][stage].map(b => b.blob);
 }
 
-function getDramBlobs(dram) {
-  return STAGES.flatMap(stage => getStageBlobs(dram, stage.key)).slice(0, 4);
-}
-
 // ── Post ──────────────────────────────────────────────────────────
 postBtn.addEventListener('click', async () => {
   const text = composeText.value.trim();
@@ -1640,6 +1636,7 @@ function showTastingFb(msg, type) {
   setTimeout(() => { tastingFb.className = ''; tastingFb.style.display = 'none'; }, 4000);
 }
 
+// Build post text for one stage of one dram (server appends #BlindDrams)
 function stageText(dram, stage) {
   const s = dramState[dram];
   const meta = STAGES.find(item => item.key === stage);
@@ -1653,38 +1650,20 @@ function stageText(dram, stage) {
   return `Dram ${dram} - ${meta.prefix}${text ? `: ${text}` : ''}`;
 }
 
-// Build post text for tasting notes (server appends #BlindDrams)
-function tastingText(dram, payload = {}) {
-  if (payload.stage) return stageText(dram, payload.stage);
-  const s = dramState[dram];
-  const parts = [];
-  if (s.appearance.trim()) parts.push(`Appearance: ${s.appearance.trim()}`);
-  if (s.nose.trim())       parts.push(`On the nose: ${s.nose.trim()}`);
-  if (s.palate.trim())     parts.push(`On the palate: ${s.palate.trim()}`);
-  if (s.finish.trim())     parts.push(`The finish: ${s.finish.trim()}`);
-  if (s.score != null)     parts.push(`Score: ${'⭐'.repeat(s.score)}${s.score===0?'🚫':''} ${s.score}/5 - ${SCORE_FULL[s.score]}`);
-  if (s.scoreNote.trim())  parts.push(`Score note: ${s.scoreNote.trim()}`);
-  return `Dram ${dram} - ${parts.join('. ')}`;
-}
-
 async function postTasting(payload) {
   if (!sessionId) return;
-  const text = tastingText(payload.dram, payload);
+  const text = stageText(payload.dram, payload.stage);
   const r = await fetch('/api/post', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       sessionId,
       text,
-      blobs: payload.stage ? getStageBlobs(payload.dram, payload.stage) : getDramBlobs(payload.dram),
+      blobs: getStageBlobs(payload.dram, payload.stage),
     }),
   });
   const data = await r.json();
   if (!r.ok) throw new Error(data.error || 'Post failed');
-  if (payload.stage) {
-    stageImages[payload.dram][payload.stage] = [];
-  } else {
-    stageImages[payload.dram] = blankStageImages();
-  }
+  stageImages[payload.dram][payload.stage] = [];
   if (payload.dram === activeDram) {
     renderAllStageImages();
     updateAllStageStatuses();
@@ -1738,7 +1717,6 @@ stagePostBtns.forEach(btn => {
   });
 });
 
-// Post everything
 loadDram(1);
 
 async function pollFeed() {
