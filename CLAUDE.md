@@ -22,6 +22,8 @@ Required env vars (see `.env.example`, loaded via dotenv):
 
 - `BSKY_HANDLE`, `BSKY_APP_PASSWORD` — credentials for the **shared feed agent** (read-only polling). The server exits on boot if either is missing.
 - `KLIPY_API_KEY` — optional. Without it the server only logs a warning and the three `/api/klipy/*` routes return 503, which disables the GIF picker in the UI.
+- `ADMIN_PASSWORD`, `GITHUB_TOKEN` — required for the admin page at `/admin.html`. Without them `/api/admin/*` returns 503 and the page reports "not configured". `GITHUB_TOKEN` must be a fine-grained PAT with *Contents: read and write* scoped to this repository only.
+- `GITHUB_REPO` — optional, defaults to `pete-van-jaarsveldt/BskyBlindDramsGroup`.
 - `PORT` — optional, defaults to 3000.
 
 ## Architecture
@@ -78,10 +80,15 @@ Images in both modes go through `downscaleImage()` before upload: files over ~1.
 
 ### Header event card
 
-The current tasting event is **hardcoded in `public/index.html`**, not configured: the `TASTING_START_ISO` constant plus the `#header-event` markup (kicker, title, and a `btcNN-theme.jpeg` from `public/`).
+The current event lives in `public/event.json` (`number`, `title`, `startIso`, `imagePath`) and is fetched by `index.html` at load.
+Nothing about the event is hardcoded: the `#BTCNN` kicker, the `title · day month` header, the image alt and the "Post this" text are all derived from those four fields.
 `updateCountdown()` runs every 60s and **hides the whole card once the start time passes**.
-When signed in, a "Post this" button appears that uploads the theme image and posts it with the live countdown text.
-Setting up the next event means editing all of: `TASTING_START_ISO`, the three `header-event` spans, the image filename, the hardcoded post text in the `event-post-btn` handler, and the `BTC` assertions in `test/ui-features.test.js`.
+
+The card starts hidden and is shown only once the fetch succeeds *and* the start time is still in the future, so a missing or malformed `event.json` degrades to no card rather than throwing — which in a single inline script would take login down too.
+
+**To change the event, use `/admin.html` rather than editing code.**
+It needs `ADMIN_PASSWORD` and `GITHUB_TOKEN`, commits `event.json` (plus the banner, if a new one was uploaded) to `main` as one atomic commit via the GitHub Git Data API, and the `Fly Deploy` workflow then ships it.
+Uploading a banner stores it at `public/banners/btcNN.jpg`; saving *without* an image carries the existing `imagePath` forward, read back from the committed `event.json`.
 
 ## Tests
 
@@ -90,7 +97,9 @@ So the tests are regression guardrails on the markup and inline script (does thi
 Two are worth knowing about:
 
 - **`getElementById` orphan check** — every `getElementById('x')` must have a matching `id="x"`. A missing id throws, and because everything lives in one inline `<script>`, that single throw kills the whole script and breaks login. This test exists because that actually happened (`73d3fdd`).
-- **Event-card assertions** hardcode `BTC67` / `World Cup Whiskies` / `btc67-theme.jpeg`, so they must be updated whenever the event changes.
+- **Event-card assertions are mechanism-based, not literal** — they check that `event.json` parses with the four expected fields, that the banner it names exists on disk, and that `index.html` contains no `BTC\d+` literal at all. They do not need touching when the event changes.
+
+`test/event-config.test.js` and `test/github-commit.test.js` are different in kind: they exercise `lib/` directly and are real behavioural tests. `github-commit` injects a fake `fetch` to assert the exact GitHub call sequence and that a mid-sequence failure never issues the ref update.
 
 The `Dockerfile` does not copy `test/`, so tests are a dev-only concern and never ship in the image.
 
@@ -106,5 +115,7 @@ Env vars are set as Fly secrets, not committed (`.env` is gitignored, and `fly.t
 - **One inline script, no modules.** Any thrown error at load time takes the entire frontend with it — including login. Prefer defensive lookups over assuming an element exists.
 - **`showLoggedIn` / `showLoggedOut` are monkey-patched** at the very bottom of the script to also toggle the GIF buttons and the event-post button. The `Init` block runs *before* that patch, which is why a separate `if (sessionId) enableGifBtns(true)` follows it. New login/logout side effects belong in `enableGifBtns()` or the patch, not only in the original functions.
 - **Feed intervals differ on purpose:** server polls Bluesky every 5s, browser polls the server every 2s.
+- **`Dockerfile` copies paths explicitly.** `server.js`, `lib/` and `public/` each have their own `COPY` line. A new top-level directory needs a new line, or the image builds cleanly and crashes on boot with `ERR_MODULE_NOT_FOUND`.
+- **Pushing to `main` deploys.** `.github/workflows/deploy.yml` runs the test suite and then `flyctl deploy` on every push to `main`.
 - **Untracked scratch files** live in the repo root (`filter_results.py`, `search_results.json`, `ranked_candidates.json`, `bluesky_whisky_accounts_raw.json`, `whisky-candidates.html`) from a one-off exercise to find whisky accounts on Bluesky. They are not part of the app and are not referenced by it.
 - **codebase-memory graph coverage is poor here.** The indexer extracts neither JS inside `<script>` blocks nor Express routes registered as inline callbacks, so the graph knows only 4 functions, all from `server.js`. A `search_graph` miss means "not extracted", not "doesn't exist" — use grep/Read for the frontend and the API surface.
