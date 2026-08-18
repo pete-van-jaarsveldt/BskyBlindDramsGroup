@@ -1,0 +1,189 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>#BlindDrams — event admin</title>
+<style>
+  :root { --bg:#14100c; --panel:#1e1811; --line:#3a2f22; --text:#f2e9dc; --muted:#a89880; --accent:#e49a13; --red:#e0524a; --green:#4caf7d; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,sans-serif; }
+  .card { max-width:520px; margin:0 auto; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px; }
+  h1 { margin:0 0 4px; font-size:19px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  label { display:block; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:14px 0 5px; }
+  input { width:100%; padding:10px 11px; background:#120e0a; border:1px solid var(--line); border-radius:7px; color:var(--text); font-size:15px; }
+  input:focus { outline:none; border-color:var(--accent); }
+  button { margin-top:18px; width:100%; padding:11px; background:var(--accent); border:0; border-radius:7px; color:#1a1206; font-size:15px; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  #preview { margin-top:14px; padding:10px 12px; background:#120e0a; border:1px solid var(--line); border-radius:7px; font-size:13px; color:var(--muted); }
+  #msg { margin-top:14px; font-size:13px; display:none; }
+  #msg.err { color:var(--red); display:block; }
+  #msg.ok { color:var(--green); display:block; }
+  #msg a { color:var(--accent); }
+  #form-step { display:none; }
+</style>
+
+<div class="card">
+  <h1>#BlindDrams event admin</h1>
+  <div class="sub">Sets the header banner and countdown. Saving commits to GitHub and redeploys automatically.</div>
+
+  <div id="login-step">
+    <label for="f-password">Admin password</label>
+    <input id="f-password" type="password" autocomplete="current-password">
+    <button id="login-btn">Sign in</button>
+  </div>
+
+  <div id="form-step">
+    <label for="f-number">Event number (the NN in #BTCNN)</label>
+    <input id="f-number" type="number" min="1" max="999" step="1">
+
+    <label for="f-title">Title</label>
+    <input id="f-title" type="text" maxlength="60" placeholder="World Cup Whiskies">
+
+    <label for="f-start">Start (your local time)</label>
+    <input id="f-start" type="datetime-local">
+
+    <label for="f-image">Banner image (optional — keeps the current one if empty)</label>
+    <input id="f-image" type="file" accept="image/jpeg,image/png">
+
+    <div id="preview">Fill in a date to preview the countdown.</div>
+    <button id="save-btn">Save &amp; deploy</button>
+  </div>
+
+  <div id="msg"></div>
+</div>
+
+<script>
+const loginStep = document.getElementById('login-step');
+const formStep  = document.getElementById('form-step');
+const fPassword = document.getElementById('f-password');
+const loginBtn  = document.getElementById('login-btn');
+const fNumber   = document.getElementById('f-number');
+const fTitle    = document.getElementById('f-title');
+const fStart    = document.getElementById('f-start');
+const fImage    = document.getElementById('f-image');
+const preview   = document.getElementById('preview');
+const saveBtn   = document.getElementById('save-btn');
+const msg       = document.getElementById('msg');
+
+let adminToken = null;
+
+function say(text, kind) {
+  msg.innerHTML = text;
+  msg.className = kind;
+}
+
+// datetime-local gives no offset; build one from the browser's own offset so the
+// stored value is unambiguous. The server rejects an offset-less date.
+function toOffsetIso(localValue) {
+  const d = new Date(localValue);
+  if (Number.isNaN(d.getTime())) return null;
+  const offsetMin = -d.getTimezoneOffset();
+  const sign = offsetMin >= 0 ? '+' : '-';
+  const pad = n => String(Math.floor(Math.abs(n))).padStart(2, '0');
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+  return `${local}${sign}${pad(offsetMin / 60)}:${pad(offsetMin % 60)}`;
+}
+
+function renderPreview() {
+  const iso = toOffsetIso(fStart.value);
+  if (!iso) { preview.textContent = 'Fill in a date to preview the countdown.'; return; }
+  const diff = new Date(iso).getTime() - Date.now();
+  if (diff <= 0) {
+    preview.textContent = `${iso} — that is in the past, so the card will stay hidden.`;
+    return;
+  }
+  const mins = Math.floor(diff / 60000);
+  preview.textContent = `Countdown will read: ${Math.floor(mins / 1440)}d ${Math.floor((mins % 1440) / 60)}h ${mins % 60}m to go`;
+}
+
+fStart.addEventListener('input', renderPreview);
+
+async function prefill() {
+  try {
+    const r = await fetch('event.json', { cache: 'no-cache' });
+    if (!r.ok) return;
+    const ev = await r.json();
+    fNumber.value = ev.number ?? '';
+    fTitle.value = ev.title ?? '';
+    if (ev.startIso) {
+      const d = new Date(ev.startIso);
+      if (!Number.isNaN(d.getTime())) {
+        fStart.value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      }
+    }
+    renderPreview();
+  } catch { /* an empty form is fine */ }
+}
+
+loginBtn.addEventListener('click', async () => {
+  loginBtn.disabled = true;
+  say('', '');
+  try {
+    const r = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: fPassword.value }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Sign in failed');
+    adminToken = data.adminToken;
+    fPassword.value = '';
+    loginStep.style.display = 'none';
+    formStep.style.display = 'block';
+    prefill();
+  } catch (err) {
+    say(err.message, 'err');
+  } finally {
+    loginBtn.disabled = false;
+  }
+});
+
+fPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); });
+
+function readImage() {
+  const file = fImage.files?.[0];
+  if (!file) return Promise.resolve(null);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ imageBase64: String(reader.result).split(',')[1], imageMime: file.type });
+    reader.onerror = () => reject(new Error('Could not read that image'));
+    reader.readAsDataURL(file);
+  });
+}
+
+saveBtn.addEventListener('click', async () => {
+  saveBtn.disabled = true;
+  say('Saving…', 'ok');
+  try {
+    const startIso = toOffsetIso(fStart.value);
+    if (!startIso) throw new Error('Pick a start date and time');
+    const image = await readImage();
+    const r = await fetch('/api/admin/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        adminToken,
+        number: Number(fNumber.value),
+        title: fTitle.value,
+        startIso,
+        ...(image || {}),
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      if (r.status === 401) {
+        adminToken = null;
+        formStep.style.display = 'none';
+        loginStep.style.display = 'block';
+      }
+      throw new Error(data.error || 'Save failed');
+    }
+    say(`Committed — live in about two minutes. <a href="${data.actionsUrl}" target="_blank" rel="noopener">Watch the deploy</a>`, 'ok');
+    fImage.value = '';
+  } catch (err) {
+    say(err.message, 'err');
+  } finally {
+    saveBtn.disabled = false;
+  }
+});
+</script>
