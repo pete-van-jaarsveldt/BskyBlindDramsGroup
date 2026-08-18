@@ -2,8 +2,18 @@ import 'dotenv/config';
 import { BskyAgent, RichText } from '@atproto/api';
 import express from 'express';
 import { randomUUID } from 'crypto';
+import { bannerPath, buildEventJson, secretMatches, validateEventInput } from './lib/event-config.js';
+import { commitFiles, readRepoFile } from './lib/github-commit.js';
 
-const { BSKY_HANDLE, BSKY_APP_PASSWORD, PORT = 3000, KLIPY_API_KEY } = process.env;
+const {
+  BSKY_HANDLE,
+  BSKY_APP_PASSWORD,
+  PORT = 3000,
+  KLIPY_API_KEY,
+  ADMIN_PASSWORD,
+  GITHUB_TOKEN,
+  GITHUB_REPO = 'pete-van-jaarsveldt/BskyBlindDramsGroup',
+} = process.env;
 
 if (!BSKY_HANDLE || !BSKY_APP_PASSWORD) {
   console.error('Missing BSKY_HANDLE or BSKY_APP_PASSWORD in .env');
@@ -11,6 +21,9 @@ if (!BSKY_HANDLE || !BSKY_APP_PASSWORD) {
 }
 if (!KLIPY_API_KEY) {
   console.warn('KLIPY_API_KEY not set — GIF picker will be unavailable');
+}
+if (!ADMIN_PASSWORD || !GITHUB_TOKEN) {
+  console.warn('ADMIN_PASSWORD or GITHUB_TOKEN not set — the admin page will be unavailable');
 }
 
 const BLOCKED_HANDLES = new Set(['toptags.bsky.social', 'trendtags.bsky.social']);
@@ -337,6 +350,75 @@ app.post('/api/klipy/upload', async (req, res) => {
     console.error('Klipy GIF upload failed:', err.message);
     res.status(500).json({ error: 'Failed to upload GIF' });
   }
+});
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+const ADMIN_TOKEN_TTL_MS = 2 * 60 * 60 * 1000;   // 2 hours
+const ADMIN_MAX_ATTEMPTS = 5;
+const ADMIN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;  // 15 minutes
+
+const adminSessions = new Map();   // token → { expiresAt }
+const adminAttempts = new Map();   // ip → { count, windowStart }
+
+function adminConfigured() {
+  return Boolean(ADMIN_PASSWORD && GITHUB_TOKEN);
+}
+
+function requireAdmin(req) {
+  const token = req.body?.adminToken;
+  const session = adminSessions.get(token);
+  if (!session) return false;
+  if (session.expiresAt <= Date.now()) {
+    adminSessions.delete(token);
+    return false;
+  }
+  return true;
+}
+
+// A single shared password is the only barrier in front of a repo-write token,
+// so throttle guesses. In-memory, so it resets on restart — acceptable because a
+// restart is not attacker-triggerable and the machine is long-lived.
+function attemptAllowed(ip) {
+  const now = Date.now();
+  const record = adminAttempts.get(ip);
+  if (!record || now - record.windowStart > ADMIN_ATTEMPT_WINDOW_MS) {
+    adminAttempts.set(ip, { count: 0, windowStart: now });
+    return true;
+  }
+  return record.count < ADMIN_MAX_ATTEMPTS;
+}
+
+function recordFailure(ip) {
+  const record = adminAttempts.get(ip) || { count: 0, windowStart: Date.now() };
+  record.count += 1;
+  adminAttempts.set(ip, record);
+}
+
+app.post('/api/admin/login', (req, res) => {
+  if (!adminConfigured()) return res.status(503).json({ error: 'Admin not configured' });
+
+  const ip = req.ip;
+  if (!attemptAllowed(ip)) {
+    return res.status(429).json({ error: 'Too many attempts — try again later' });
+  }
+
+  const { password } = req.body ?? {};
+  if (!secretMatches(password, ADMIN_PASSWORD)) {
+    recordFailure(ip);
+    console.warn(`Admin login failed from ${ip}`);
+    return res.status(401).json({ error: 'Incorrect password' });
+  }
+
+  adminAttempts.delete(ip);
+  for (const [token, session] of adminSessions) {
+    if (session.expiresAt <= Date.now()) adminSessions.delete(token);
+  }
+
+  const adminToken = randomUUID();
+  const expiresAt = Date.now() + ADMIN_TOKEN_TTL_MS;
+  adminSessions.set(adminToken, { expiresAt });
+  console.log('Admin login succeeded');
+  res.json({ adminToken, expiresAt });
 });
 
 // Health check
