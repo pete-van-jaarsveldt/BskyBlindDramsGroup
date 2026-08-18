@@ -632,10 +632,10 @@
     </div>
   </div>
   <div id="pulse"></div>
-  <div class="header-event" id="header-event">
-    <img class="header-event-img" src="btc67-theme.jpeg" alt="World Cup Whiskies BTC67 theme artwork">
-    <span class="header-event-kicker">#BTC67</span>
-    <span class="header-event-title">World Cup Whiskies · 15 Aug</span>
+  <div class="header-event" id="header-event" style="display:none">
+    <img class="header-event-img" id="event-img" src="" alt="">
+    <span class="header-event-kicker" id="event-kicker"></span>
+    <span class="header-event-title" id="event-title"></span>
     <span class="event-countdown" id="event-countdown">Calculating…</span>
     <button id="event-post-btn" style="display:none" class="event-countdown" title="Post this event to Bluesky">Post this</button>
   </div>
@@ -957,6 +957,10 @@ const charNum      = document.getElementById('char-num');
 const postBtn      = document.getElementById('post-btn');
 const postFeedback = document.getElementById('post-feedback');
 const eventCountdown = document.getElementById('event-countdown');
+const eventImg     = document.getElementById('event-img');
+const eventKicker  = document.getElementById('event-kicker');
+const eventTitleEl = document.getElementById('event-title');
+const headerEvent  = document.getElementById('header-event');
 const stageFields  = document.querySelectorAll('[data-stage-field]');
 const stageImgBtns = document.querySelectorAll('[data-stage-img-btn]');
 const stageImgInputs = document.querySelectorAll('[data-stage-img-input]');
@@ -1003,7 +1007,7 @@ const MAX = 300;
 const SUFFIX_LEN = 13; // ' #BlindDrams'
 const CIRCUM = 56.5;
 const LOGIN_TIMEOUT_MS = 20_000;
-const TASTING_START_ISO = '2026-08-15T20:00:00+01:00';
+let eventConfig = null;   // { number, title, startIso, imagePath }, or null until event.json loads
 const STAGES = [
   { key: 'appearance', label: 'Appearance', prefix: 'Appearance' },
   { key: 'nose', label: 'Nose', prefix: 'On the nose' },
@@ -1012,20 +1016,51 @@ const STAGES = [
   { key: 'score', label: 'Score', prefix: 'Score' },
 ];
 
+function eventIsUpcoming() {
+  return Boolean(eventConfig) && new Date(eventConfig.startIso).getTime() > Date.now();
+}
+
 function updateCountdown() {
-  const diff = new Date(TASTING_START_ISO).getTime() - Date.now();
-  if (diff <= 0) {
-    document.getElementById('header-event').style.display = 'none';
+  if (!eventIsUpcoming()) {
+    headerEvent.style.display = 'none';
     return;
   }
+  const diff = new Date(eventConfig.startIso).getTime() - Date.now();
   const totalMinutes = Math.floor(diff / 60_000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
   eventCountdown.textContent = `${days}d ${hours}h ${minutes}m to go`;
+  headerEvent.style.display = '';
 }
 
-updateCountdown();
+// Everything about the event card is data-driven. Any failure here must leave the
+// card hidden rather than throw: this is one inline script, so an uncaught error
+// would take login down with it.
+async function loadEvent() {
+  try {
+    const r = await fetch('event.json', { cache: 'no-cache' });
+    if (!r.ok) return;
+    const ev = await r.json();
+    if (!Number.isInteger(ev?.number) || !ev?.title || !ev?.startIso || !ev?.imagePath) return;
+    if (Number.isNaN(new Date(ev.startIso).getTime())) return;
+    eventConfig = ev;
+    const dayMonth = new Date(ev.startIso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    eventImg.src = ev.imagePath;
+    eventImg.alt = `${ev.title} #BTC${ev.number} theme artwork`;
+    eventKicker.textContent = `#BTC${ev.number}`;
+    eventTitleEl.textContent = `${ev.title} · ${dayMonth}`;
+    updateCountdown();
+    // Safe only because it follows the awaits above: eventPostBtn is a const
+    // declared much further down, so it is in its temporal dead zone during
+    // synchronous execution. Do not hoist this call or drop the awaits.
+    if (sessionId) setEventPostVisible(true);
+  } catch {
+    /* leave the card hidden */
+  }
+}
+
+loadEvent();
 setInterval(updateCountdown, 60_000);
 
 async function loginRequest(identifier, password) {
@@ -1965,16 +2000,16 @@ setInterval(pollFeed, 2_000);
 const eventPostBtn = document.getElementById('event-post-btn');
 
 function setEventPostVisible(on) {
-  eventPostBtn.style.display = on ? 'inline-flex' : 'none';
+  eventPostBtn.style.display = on && eventIsUpcoming() ? 'inline-flex' : 'none';
 }
 
 eventPostBtn.addEventListener('click', async () => {
-  if (!sessionId) return;
+  if (!sessionId || !eventIsUpcoming()) return;
   eventPostBtn.disabled = true;
   eventPostBtn.textContent = 'Posting…';
   try {
     // Fetch the event image and upload it as a blob
-    const imgRes = await fetch('/btc67-theme.jpeg');
+    const imgRes = await fetch(`/${eventConfig.imagePath}`);
     const buffer = await imgRes.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     let binary = '';
@@ -1989,11 +2024,11 @@ eventPostBtn.addEventListener('click', async () => {
     if (!uploadRes.ok) throw new Error(uploadData.error || 'Upload failed');
 
     const countdown = eventCountdown.textContent;
-    const text = `World Cup Whiskies — ${countdown} #BTC67 #BlindDrams`;
+    const text = `${eventConfig.title} — ${countdown} #BTC${eventConfig.number} #BlindDrams`;
     const postRes = await fetch('/api/post', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, text, blobs: [{ blob: uploadData.blob, alt: 'World Cup Whiskies #BTC67', aspectRatio: { width: 1000, height: 600 } }] }),
+      body: JSON.stringify({ sessionId, text, blobs: [{ blob: uploadData.blob, alt: `${eventConfig.title} #BTC${eventConfig.number}`, aspectRatio: { width: 1000, height: 600 } }] }),
     });
     const postData = await postRes.json();
     if (!postRes.ok) {

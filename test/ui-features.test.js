@@ -38,14 +38,30 @@ test('bounds login requests so the sign-in button can recover', () => {
   assert.match(html, /Sign in timed out/);
 });
 
-test('shows the current tasting theme and countdown without auto-adding the BTC tag', () => {
-  assert.match(html, /BTC67/);
-  assert.match(html, /World Cup Whiskies/);
-  assert.match(html, /btc67-theme\.jpeg/);
-  assert.ok(existsSync(join(root, 'public', 'btc67-theme.jpeg')));
-  assert.match(html, /TASTING_START_ISO/);
-  assert.match(html, /id="event-countdown"/);
-  assert.doesNotMatch(html, /#BTC67`|#BTC67\s*\$\{/);
+test('event config lives in event.json with the four expected fields', () => {
+  const raw = readFileSync(join(root, 'public', 'event.json'), 'utf8');
+  const event = JSON.parse(raw);
+  assert.deepEqual(Object.keys(event).sort(), ['imagePath', 'number', 'startIso', 'title']);
+  assert.ok(Number.isInteger(event.number));
+  assert.ok(typeof event.title === 'string' && event.title.trim());
+  assert.ok(!Number.isNaN(new Date(event.startIso).getTime()));
+  assert.match(event.startIso, /(Z|[+-]\d{2}:?\d{2})$/);
+});
+
+test('the banner named by event.json exists on disk', () => {
+  const event = JSON.parse(readFileSync(join(root, 'public', 'event.json'), 'utf8'));
+  assert.ok(existsSync(join(root, 'public', event.imagePath)), `missing ${event.imagePath}`);
+});
+
+test('index.html reads the event from event.json and hardcodes no event data', () => {
+  assert.match(html, /fetch\('event\.json'/);
+  assert.doesNotMatch(html, /TASTING_START_ISO/);
+  assert.doesNotMatch(html, /BTC\d+/);
+  assert.doesNotMatch(html, /btc\d+-theme\.jpeg/);
+});
+
+test('the event card starts hidden so a failed event.json fetch cannot show an empty card', () => {
+  assert.match(html, /id="header-event"[^>]*style="display:none"/);
 });
 
 test('every getElementById reference resolves to an element id (a missing id throws and kills the whole inline script, breaking login)', () => {
