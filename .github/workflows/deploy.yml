@@ -10,11 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: deploy-group
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      # npm install, not npm ci: this repo has no package-lock.json
       - run: npm install
       - run: npm test
       - uses: superfly/flyctl-actions/setup-flyctl@master
