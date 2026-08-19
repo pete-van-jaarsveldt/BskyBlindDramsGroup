@@ -4,6 +4,7 @@ import express from 'express';
 import { randomUUID } from 'crypto';
 import { bannerPath, buildEventJson, secretMatches, validateEventInput } from './lib/event-config.js';
 import { commitFiles, readRepoFile } from './lib/github-commit.js';
+import { isOwnPost } from './lib/post-identity.js';
 
 const {
   BSKY_HANDLE,
@@ -166,6 +167,7 @@ app.post('/api/login', async (req, res) => {
     console.log(`User logged in: ${userAgent.session.handle}`);
     res.json({
       sessionId,
+      did:         userAgent.session.did,   // lets the client gate self-likes on the same identity the server enforces
       handle:      userAgent.session.handle,
       displayName: profile.data.displayName || userAgent.session.handle,
       avatar:      profile.data.avatar || null,
@@ -272,6 +274,14 @@ app.post('/api/like', async (req, res) => {
   const { sessionId, uri, cid } = req.body ?? {};
   const session = sessions.get(sessionId);
   if (!session) return res.status(401).json({ error: 'Not logged in' });
+
+  // Bluesky itself permits self-likes, so this rule is ours to enforce. The author
+  // DID is read out of the URI rather than taken from the request body, so a client
+  // cannot talk its way past it. Unliking is deliberately NOT guarded, so anyone
+  // holding a self-like from before this rule existed can still remove it.
+  if (isOwnPost(uri, session.agent.session?.did)) {
+    return res.status(403).json({ error: 'You cannot like your own post' });
+  }
 
   try {
     const result = await session.agent.like(uri, cid);

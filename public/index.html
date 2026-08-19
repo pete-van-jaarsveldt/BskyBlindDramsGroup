@@ -984,6 +984,14 @@ const esc = s => String(s)
   .replace(/&/g,'&amp;').replace(/</g,'&lt;')
   .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+// A post's author DID is the authority segment of its AT-URI, so "did I write this?"
+// needs nothing beyond what the feed already sends. Mirrors lib/post-identity.js.
+function isOwnPostUri(uri) {
+  if (!userInfo || !userInfo.did || typeof uri !== 'string') return false;
+  const match = uri.match(/^at:\/\/(did:[a-z0-9]+:[A-Za-z0-9._:%-]+)\//);
+  return Boolean(match) && match[1] === userInfo.did;
+}
+
 function relativeTime(iso) {
   const d = (Date.now() - new Date(iso)) / 1000;
   if (d < 60)    return `${Math.floor(d)}s ago`;
@@ -1452,7 +1460,7 @@ function renderPost(post) {
     <div class="post-footer">
       <button class="action-btn like-btn ${liked?'liked':''}"
         data-uri="${esc(post.uri)}" data-cid="${esc(post.cid)}"
-        ${sessionId ? '' : 'disabled title="Sign in to like"'}>
+        ${likeGateAttrs(post.uri, liked)}>
         ${likesvg}<span class="lc">${post.likeCount}</span>
       </button>
       <button class="action-btn">
@@ -1470,6 +1478,14 @@ function renderPost(post) {
       <a class="open-btn" href="${esc(post.url)}" target="_blank" rel="noopener">Open ↗</a>
     </div>`;
   return el;
+}
+
+// Own posts cannot be liked — but an own post that is ALREADY liked keeps an enabled
+// button, otherwise a self-like made before this rule existed could never be undone.
+function likeGateAttrs(uri, liked) {
+  if (!sessionId) return 'disabled title="Sign in to like"';
+  if (isOwnPostUri(uri) && !liked) return 'disabled title="You cannot like your own post"';
+  return '';
 }
 
 function updatePostCounts(entry, post) {
@@ -1883,13 +1899,16 @@ function refreshLikeButtons() {
     if (!btn) continue;
     const lc  = btn.querySelector('.lc');
 
-    // Enable/disable based on login state
-    if (sessionId) {
-      btn.removeAttribute('disabled');
-      btn.removeAttribute('title');
-    } else {
+    // Enable/disable based on login state, and on whether this is the viewer's own post
+    if (!sessionId) {
       btn.setAttribute('disabled', '');
       btn.setAttribute('title', 'Sign in to like');
+    } else if (isOwnPostUri(uri) && !localLikes.has(uri)) {
+      btn.setAttribute('disabled', '');
+      btn.setAttribute('title', 'You cannot like your own post');
+    } else {
+      btn.removeAttribute('disabled');
+      btn.removeAttribute('title');
     }
 
     if (localLikes.has(uri)) {
