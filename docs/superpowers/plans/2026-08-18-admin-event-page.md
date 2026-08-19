@@ -1510,7 +1510,9 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 ```
 
-`npm install` rather than `npm ci`, because this repo has no `package-lock.json`.
+`npm install` rather than `npm ci`.
+
+**Correction (2026-08-19):** the original reason given here — "because this repo has no `package-lock.json`" — was wrong and was asserted without checking. `package-lock.json` has been tracked since the initial commit `566b819`, and `npm ci --dry-run` succeeds, so `npm ci` is viable and would be the better CI choice (reproducible, and it fails loudly if the lockfile and `package.json` disagree).
 
 - [ ] **Step 2: Validate the workflow parses as YAML**
 
