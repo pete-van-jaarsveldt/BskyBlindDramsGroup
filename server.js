@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { bannerPath, buildEventJson, secretMatches, validateEventInput } from './lib/event-config.js';
 import { commitFiles, readRepoFile } from './lib/github-commit.js';
 import { isOwnPost } from './lib/post-identity.js';
+import { buildKlipyGifUri, isKlipyMediaUrl } from './lib/klipy-gif.js';
 
 const {
   BSKY_HANDLE,
@@ -203,9 +204,14 @@ app.post('/api/upload', async (req, res) => {
 
 // Post
 app.post('/api/post', async (req, res) => {
-  const { sessionId, text, blobs } = req.body ?? {};
+  const { sessionId, text, blobs, gif } = req.body ?? {};
   if (!sessionId || !text?.trim())
     return res.status(400).json({ error: 'sessionId and text required' });
+  // A post carries one embed, so a GIF link card cannot sit alongside photos
+  if (gif && blobs?.length)
+    return res.status(400).json({ error: 'A GIF cannot be posted together with photos' });
+  if (gif && !isKlipyMediaUrl(gif.uri))
+    return res.status(400).json({ error: 'Invalid GIF' });
 
   const session = sessions.get(sessionId);
   if (!session) return res.status(401).json({ error: 'Not logged in' });
@@ -216,9 +222,19 @@ app.post('/api/post', async (req, res) => {
   const rt = new RichText({ text: fullText });
   await rt.detectFacets(session.agent);
 
-  // Build image embed if any blobs were uploaded.
-  // Each entry may be a raw blob ref OR { blob, alt, aspectRatio }.
-  const embed = blobs?.length
+  // Build the embed: a GIF link card, or an image embed for uploaded blobs.
+  // Each blob entry may be a raw blob ref OR { blob, alt, aspectRatio }.
+  const embed = gif
+    ? {
+        $type: 'app.bsky.embed.external',
+        external: {
+          uri:         gif.uri,
+          title:       gif.title ?? '',
+          description: gif.description ?? '',
+          ...(gif.thumb ? { thumb: gif.thumb } : {}),
+        },
+      }
+    : blobs?.length
     ? {
         $type: 'app.bsky.embed.images',
         images: blobs.map(b => {
@@ -341,21 +357,34 @@ app.get('/api/klipy/search', async (req, res) => {
   }
 });
 
-// Fetch a Klipy GIF by URL and upload it as a Bluesky blob
+// Turn a picked Klipy GIF into an external-embed record. Uploading the GIF itself
+// as an image blob posts a still frame, because Bluesky's CDN re-encodes image
+// blobs; only the still thumbnail is uploaded here, as bsky.app does.
 app.post('/api/klipy/upload', async (req, res) => {
   if (!KLIPY_API_KEY) return res.status(503).json({ error: 'GIF picker not configured' });
-  const { sessionId, gifUrl } = req.body ?? {};
+  const { sessionId, media, alt } = req.body ?? {};
   const session = sessions.get(sessionId);
   if (!session) return res.status(401).json({ error: 'Not logged in' });
-  if (!gifUrl) return res.status(400).json({ error: 'gifUrl required' });
+
+  let uri;
+  try {
+    uri = buildKlipyGifUri(media);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
 
   try {
-    const gifRes = await fetch(gifUrl);
-    if (!gifRes.ok) throw new Error(`Failed to fetch GIF: ${gifRes.status}`);
-    const buffer = Buffer.from(await gifRes.arrayBuffer());
-    const mimeType = gifRes.headers.get('content-type') || 'image/gif';
-    const result = await session.agent.uploadBlob(buffer, { encoding: mimeType });
-    res.json({ blob: result.data.blob });
+    let thumb;
+    // The URL comes from the client, so only ever fetch Klipy's own CDN
+    if (isKlipyMediaUrl(media.jpg?.url)) {
+      const thumbRes = await fetch(media.jpg.url);
+      if (!thumbRes.ok) throw new Error(`Failed to fetch GIF thumbnail: ${thumbRes.status}`);
+      const buffer = Buffer.from(await thumbRes.arrayBuffer());
+      const result = await session.agent.uploadBlob(buffer, { encoding: 'image/jpeg' });
+      thumb = result.data.blob;
+    }
+    const title = typeof alt === 'string' ? alt : '';
+    res.json({ gif: { uri, title, description: title ? `ALT: ${title}` : '', thumb } });
   } catch (err) {
     console.error('Klipy GIF upload failed:', err.message);
     res.status(500).json({ error: 'Failed to upload GIF' });

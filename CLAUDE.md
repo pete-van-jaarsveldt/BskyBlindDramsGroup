@@ -49,7 +49,7 @@ There is **no database** — all state is in memory and lost on restart.
 | `GET /api/viewer-likes` | sessionId (query) | Which of the newest 100 tagged posts this user already liked |
 | `POST /api/like` / `POST /api/unlike` | sessionId | Like / delete-like |
 | `GET /api/klipy/trending` / `GET /api/klipy/search` | — | Server-side proxy to the Klipy GIF API |
-| `POST /api/klipy/upload` | sessionId | Fetches a Klipy GIF server-side and re-uploads it as a Bluesky blob |
+| `POST /api/klipy/upload` | sessionId | Builds an external-embed record for a picked Klipy GIF (uploads only its still jpg thumb) |
 | `GET /healthz` | — | Fly health check |
 
 ### Request flow conventions
@@ -58,7 +58,8 @@ There is **no database** — all state is in memory and lost on restart.
 - Image upload is two-step: the client base64-encodes the file and POSTs to `/api/upload`, which calls `uploadBlob` and returns a blob ref; the client holds blob refs in `pendingBlobs` / `stageImages` and sends them in the `/api/post` body, where they're wrapped into an `app.bsky.embed.images` embed. `express.json` limit is raised to `10mb` to fit base64 images.
 - `/api/post` accepts each blob entry either as a raw blob ref **or** as `{ blob, alt, aspectRatio }`, so callers can supply alt text (the event-card button does; the compose panel currently doesn't).
 - `/api/post` **always ensures the `#BlindDrams` tag** is present (appends it if the text lacks it), then runs the text through `RichText.detectFacets` so links/mentions/tags are properly faceted.
-- The Klipy API key never reaches the browser — both read routes are proxied, and `/api/klipy/upload` does the GIF fetch server-side so the GIF lands as a real Bluesky image blob rather than an external link card.
+- The Klipy API key never reaches the browser — both read routes are proxied.
+- **Picked GIFs are posted as an `app.bsky.embed.external` link card, never as an image blob.** Bluesky's CDN serves every image blob back as a still webp, so a GIF uploaded via `uploadBlob` posts static. `lib/klipy-gif.js` builds the `…gif?hh=&ww=&mp4=&webm=` URL that bsky.app recognises and plays (mirrors `resolveGif()` in `bluesky-social/social-app`), and `/api/post` takes it as `gif`. A post has only one embed, so a GIF must be its only attachment — `attachmentsFull()` / `attachmentPayload()` in `index.html` enforce that client-side and `/api/post` rejects `gif` + `blobs`. GIF *files* uploaded from disk still go up as blobs and still post static.
 
 ### Feed rendering specifics
 

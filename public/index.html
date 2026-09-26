@@ -1214,7 +1214,21 @@ async function uploadImageFile(file) {
   return { blob: json.blob, previewUrl: data, alt: '' };
 }
 
+// A GIF is posted as a link card, which is a post's only embed — so it can't share
+// a post with photos, and it fills the attachment list on its own.
+function attachmentsFull(list) {
+  return list.length >= 4 || list.some(item => item.gif);
+}
+
+function attachmentPayload(list) {
+  return {
+    blobs: list.filter(item => item.blob).map(item => item.blob),
+    gif: list.find(item => item.gif)?.gif,
+  };
+}
+
 async function addImagesToList(files, list, render, button) {
+  if (attachmentsFull(list)) return;
   const selected = [...files].slice(0, 4 - list.length);
   if (!selected.length || !sessionId) return;
 
@@ -1230,7 +1244,7 @@ async function addImagesToList(files, list, render, button) {
       console.error('Upload error:', err.message);
     }
   }
-  button.disabled = list.length >= 4;
+  button.disabled = attachmentsFull(list);
 }
 
 imgInput.addEventListener('change', async () => {
@@ -1305,15 +1319,11 @@ function renderStageImages(stage) {
     };
     previews.appendChild(wrap);
   });
-  button.disabled = list.length >= 4;
+  button.disabled = attachmentsFull(list);
 }
 
 function renderAllStageImages() {
   STAGES.forEach(stage => renderStageImages(stage.key));
-}
-
-function getStageBlobs(dram, stage) {
-  return stageImages[dram][stage].map(b => b.blob);
 }
 
 // ── Post ──────────────────────────────────────────────────────────
@@ -1332,7 +1342,7 @@ postBtn.addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sessionId, text,
-        blobs: pendingBlobs.map(b => b.blob),
+        ...attachmentPayload(pendingBlobs),
       }),
     });
     const data = await r.json();
@@ -1709,7 +1719,7 @@ async function postTasting(payload) {
     body: JSON.stringify({
       sessionId,
       text,
-      blobs: getStageBlobs(payload.dram, payload.stage),
+      ...attachmentPayload(stageImages[payload.dram][payload.stage]),
     }),
   });
   const data = await r.json();
@@ -2083,9 +2093,9 @@ function klipyGifUrl(item) {
   return item.file?.sm?.gif?.url || item.file?.xs?.gif?.url || item.file?.md?.gif?.url || '';
 }
 
-function klipyFullUrl(item) {
-  // Use sm to stay well under Bluesky's 1MB blob limit
-  return item.file?.sm?.gif?.url || item.file?.xs?.gif?.url || '';
+function klipyMedia(item) {
+  // One size's formats (gif/mp4/webm/jpg); the GIF is linked, not uploaded, so size is free
+  return item.file?.md || item.file?.sm || item.file?.xs;
 }
 
 function klipyStatus(msg) {
@@ -2099,8 +2109,8 @@ function renderKlipyItems(items, append = false) {
 
   items.forEach(item => {
     const thumb = klipyGifUrl(item);
-    const full  = klipyFullUrl(item);
-    if (!thumb) return;
+    const media = klipyMedia(item);
+    if (!thumb || !media?.gif) return;
     const div = document.createElement('div');
     div.className = 'klipy-thumb';
     const img = document.createElement('img');
@@ -2108,7 +2118,7 @@ function renderKlipyItems(items, append = false) {
     img.alt = item.title || 'GIF';
     img.loading = 'lazy';
     div.appendChild(img);
-    div.addEventListener('click', () => onKlipySelect(full || thumb, item.title || ''));
+    div.addEventListener('click', () => onKlipySelect(media, thumb, item.title || ''));
     klipyGrid.appendChild(div);
   });
 
@@ -2132,7 +2142,7 @@ async function klipyFetch(query, page, append = false) {
   }
 }
 
-async function onKlipySelect(gifUrl, alt) {
+async function onKlipySelect(media, previewUrl, alt) {
   if (!sessionId) return;
 
   // Mark all thumbs as inert while uploading
@@ -2143,7 +2153,7 @@ async function onKlipySelect(gifUrl, alt) {
     const r = await fetch('/api/klipy/upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, gifUrl }),
+      body: JSON.stringify({ sessionId, media, alt }),
     });
     const data = await r.json();
     if (!r.ok) {
@@ -2151,11 +2161,11 @@ async function onKlipySelect(gifUrl, alt) {
       throw new Error(data.error || 'Upload failed');
     }
 
-    const item = { blob: data.blob, previewUrl: gifUrl, alt };
+    const item = { gif: data.gif, previewUrl, alt };
 
     if (klipyTarget === 'free') {
       pendingBlobs.push(item);
-      imgBtn.disabled = pendingBlobs.length >= 4;
+      imgBtn.disabled = attachmentsFull(pendingBlobs);
       renderImgPreviews();
     } else {
       const list = stageImages[activeDram][klipyTarget];
@@ -2163,7 +2173,7 @@ async function onKlipySelect(gifUrl, alt) {
       renderStageImages(klipyTarget);
       updateStageStatus(klipyTarget);
       const stageBtn = document.querySelector(`[data-stage-img-btn="${klipyTarget}"]`);
-      if (stageBtn) stageBtn.disabled = list.length >= 4;
+      if (stageBtn) stageBtn.disabled = attachmentsFull(list);
       if (posted[activeDram][klipyTarget]) {
         posted[activeDram][klipyTarget] = false;
         const postBtn = document.querySelector(`[data-stage-post="${klipyTarget}"]`);
@@ -2184,6 +2194,11 @@ function openKlipyModal(target) {
   klipyQuery  = '';
   klipySearch.value = '';
   klipyModal.classList.add('on');
+  const list = target === 'free' ? pendingBlobs : stageImages[activeDram][target];
+  if (list.length) {
+    klipyStatus('A GIF has to be posted on its own — remove the photos first');
+    return;
+  }
   klipySearch.focus();
   klipyFetch('', 1);
 }

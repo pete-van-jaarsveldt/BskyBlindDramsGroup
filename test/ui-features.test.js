@@ -28,8 +28,13 @@ test('allows image attachments from each dram tasting page', () => {
   assert.match(html, /data-stage-img-input="palate"/);
   assert.match(html, /data-stage-img-input="finish"/);
   assert.match(html, /data-stage-img-input="score"/);
-  assert.match(html, /function getStageBlobs/);
-  assert.match(html, /getStageBlobs\(payload\.dram,\s*payload\.stage\)/);
+  assert.match(html, /function attachmentPayload/);
+  assert.match(html, /attachmentPayload\(stageImages\[payload\.dram\]\[payload\.stage\]\)/);
+});
+
+test('posts picked GIFs as link cards, not image blobs, so they stay animated', () => {
+  assert.match(html, /const item = \{ gif: data\.gif,/);
+  assert.match(html, /\.\.\.attachmentPayload\(pendingBlobs\)/);
 });
 
 test('bounds login requests so the sign-in button can recover', () => {
